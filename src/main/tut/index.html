@@ -57,7 +57,7 @@ Array(1) == Array(1)
 
 --
 
-Bad because : it just does not work
+Bad because : it does not work
 
 ```tut:book
 Array(1) == Array(1)
@@ -201,7 +201,7 @@ object a2 {
 Prefer :
 
 * very explicit class names to avoid naming conflicts
-* `ToXYZOps` pattern (see [simulacrum](https://github.com/mpilquist/simulacrum) for an example)
+* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
 
 ???
 
@@ -385,7 +385,7 @@ List(1, 11, 111, 111l, 11111, 11111, 11111)
 
 --
 
-Prefer : upper-case l
+Prefer : upper-case L
 
 ```tut:book
 List(1, 11, 111, 111L, 11111, 11111, 11111)
@@ -639,7 +639,10 @@ add1(Wrapper(1))
 
 --
 
-Bad because : runtime cost, not available on all platforms (scala.js?)
+Bad because :
+
+* runtime cost
+* not available on all platforms (although it _is_ supported by scala.js)
 
 ---
 
@@ -829,13 +832,26 @@ Seq.empty[Int].fold(0)(_ + _)
 
 ---
 
+## Enforcing best practices
+
+* Code reviews
+* Automated tools
+  * [scapegoat](https://github.com/sksamuel/scapegoat)
+  * [wartremover](http://www.wartremover.org)
+  * [scala linter](https://github.com/HairyFotr/linter)
+  * [abide](https://github.com/scala/scala-abide)
+  * [scalastyle](http://www.scalastyle.org)
+  * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2014/04/11/scalac-flags.html))
+
+---
+
 ## More information
 
 Slides available on https://github.com/nrinaudo/talk-typeclasses-csv
 
 Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
 
-Get in touch with [`ioSquare`](http://iosquare.com/careers.php), we're always on the lookout for Scala talent
+Get in touch with [`ioSquare`](https://twitter.com/iosquare), we're always on the lookout for Scala talent
 
 Slides backed by [remark.js](https://remarkjs.com/) and [Rob Norris](https://twitter.com/tpolecat)' amazing
 [tut](https://github.com/tpolecat/tut)
