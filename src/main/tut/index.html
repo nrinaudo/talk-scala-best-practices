@@ -450,6 +450,32 @@ Prefer :
 
 ---
 
+## Exceptions
+
+Common implementation :
+
+```tut:silent:reset
+def parseInt(str: String): Int = str.toInt
+def elementAt[A](value: Array[A], i: Int): A = value(i)
+```
+
+--
+
+Bad because : where to begin...
+
+* unchecked (the compiler cannot enforce code validity)
+* basically a GOTO statement
+
+--
+
+Prefer :
+
+* `Option` to convey the potential absence of a value
+* `Either` to convey a potentially failing computation
+* `Try`, if you have to deal with code that throws
+
+---
+
 ## The `return` keyword
 
 "Common" implementation :
