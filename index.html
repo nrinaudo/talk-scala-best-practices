@@ -21,7 +21,7 @@ This is meant for Scala developers of beginner to intermediate levels.
 
 The goal is to list common bad practices often seen in Scala code, and how to avoid them.
 
-Each slide will start with a common pattern. See if you work out what's wrong with it!
+Each slide will start with a common pattern. See if you can work out what's wrong with it!
 
 ---
 
@@ -140,7 +140,7 @@ Prefer : integral types in ranges
 Common implementation :
 
 ```scala
-val l = 123l
+val l = 32l
 ```
 
 --
@@ -184,13 +184,23 @@ object Gender extends Enumeration {
 Bad because : no pattern match exhaustivity check
 
 ```scala
-// This should not compile!!
 def foo(w: Gender.Value): Unit = w match {
   case Gender.Male ⇒ println("Male")
 }
 ```
 
 --
+
+```scala
+foo(Gender.Female)
+// scala.MatchError: Female (of class scala.Enumeration$Val)
+//   at .foo(<console>:14)
+//   ... 444 elided
+```
+
+---
+
+## Enumerations (2)
 
 Prefer : sealed trait hierarchies (ADTs)
 
@@ -201,6 +211,22 @@ object Gender {
   case object Female extends Gender
 }
 ```
+
+--
+
+The compiler now knows we're not exhaustive:
+
+```scala
+def foo(w: Gender): Unit = w match {
+  case Gender.Male ⇒ println("Male")
+}
+// <console>:14: warning: match may not be exhaustive.
+// It would fail on the following input: Female
+//        def foo(w: Gender): Unit = w match {
+//                                   ^
+// foo: (w: Gender)Unit
+```
+
 
 ---
 
@@ -403,8 +429,8 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 Bad because : where to begin...
 
+* basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
-* basically a GOTO statement
 
 --
 
@@ -422,25 +448,49 @@ Prefer :
 
 ```scala
 def add(n: Int, m: Int): Int = return n + m
-// add: (n: Int, m: Int)Int
 ```
 
 --
 
-Bad because : it doesn't do what you think it does
+Bad because : 
+
+* basically a `GOTO` statement
+* it doesn't do what you think it does
+
+--
 
 ```scala
-def foo: () ⇒ Int = () ⇒ return () ⇒ 1
+def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
+// <console>:12: error: type mismatch;
+//  found   : Int
+//  required: List[Int]
+//        def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
+//                                                                ^
 ```
 
+Doesn't seem to make sense, but let's change the type...
+
+---
+
+## The `return` keyword (2)
+
 ```scala
-foo()
-// scala.runtime.NonLocalReturnControl
+def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
+// <console>:12: error: type mismatch;
+//  found   : List[Nothing]
+//  required: Int
+//        def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
+//                                            ^
 ```
 
 --
 
-Prefer : never using `return`. Ever. Seriously.
+
+
+--
+
+Prefer : never using `return`.
+
 
 ???
 
@@ -469,7 +519,7 @@ Bad because : we use types to prevent us from doing illegal operations
 //   at java.lang.Integer.parseInt(Integer.java:580)
 //   at java.lang.Integer.parseInt(Integer.java:615)
 //   at .str2int(<console>:12)
-//   ... 958 elided
+//   ... 1020 elided
 ```
 
 ---
