@@ -15,6 +15,12 @@ Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • 
 
 ---
 
+class: center, middle
+
+# Working with Numbers
+
+---
+
 ## Checking for oddness
 
 Common implementation :
@@ -50,12 +56,13 @@ Checked by:
 
 ---
 
-## Array comparison
+## Checking for `NaN`
 
 Common implementation :
 
 ```scala
-Array(1) == Array(1)
+2.0 == Double.NaN
+// res0: Boolean = false
 ```
 
 --
@@ -63,23 +70,126 @@ Array(1) == Array(1)
 Bad because : it does not work
 
 ```scala
-Array(1) == Array(1)
+Double.NaN == Double.NaN
 // res1: Boolean = false
 ```
 
 --
 
-Prefer : deep comparisons
+Prefer : calling `isNaN`
 
 ```scala
-Array(1).deep == Array(1).deep
+Double.NaN.isNaN
 // res2: Boolean = true
+
+2.0.isNaN
+// res3: Boolean = false
 ```
 
 ???
+
 Checked by:
 
+* linter
 * scapegoat
+
+Normal behaviour according to IEEE 754
+
+---
+
+## Float in ranges
+
+Common implementation :
+
+```scala
+0.1 to 0.9 by 0.1
+```
+
+--
+
+Bad because : floating points don't add nicely
+
+```scala
+(0.1 to 0.9 by 0.1).toList
+// res1: List[Double] = List(0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7, 0.7999999999999999, 0.8999999999999999)
+```
+
+--
+
+Prefer : integral types in ranges
+
+```scala
+(1 to 9 by 1).map(_ / 10F).toList
+// res2: List[Float] = List(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+```
+
+---
+
+## Long literals
+
+Common implementation :
+
+```scala
+val l = 123l
+```
+
+--
+
+Bad because : depending on the font, `l` can't be hard to distinguish from `1`
+
+```scala
+List(1, 11, 111, 111l, 11111, 11111, 11111)
+// res0: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
+```
+
+--
+
+Prefer : upper-case L
+
+```scala
+List(1, 11, 111, 111L, 11111, 11111, 11111)
+// res1: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
+```
+
+---
+
+class: center, middle
+
+# Data Representation
+
+---
+
+## Enumerations
+
+Common implementation :
+
+```scala
+object Gender extends Enumeration {
+  val Male, Female = Value
+}
+```
+
+--
+
+Bad because : no pattern match exhaustivity check
+
+```scala
+def foo(w: Gender.Value): Unit = w match {
+  case Gender.Male ⇒ println("Male")
+}
+```
+
+--
+
+Prefer : sealed trait hierarchies (ADTs)
+
+```scala
+sealed trait Gender
+object Gender {
+  case object Male extends Gender
+  case object Female extends Gender
+}
+```
 
 ---
 
@@ -121,138 +231,6 @@ Checked by:
 
 * scapegoat
 * wartremover
-
----
-
-## Checking for `NaN`
-
-Common implementation :
-
-```scala
-2.0 == Double.NaN
-// res0: Boolean = false
-```
-
---
-
-Bad because : it does not work
-
-```scala
-Double.NaN == Double.NaN
-// res1: Boolean = false
-```
-
---
-
-Prefer : calling `isNaN`
-
-```scala
-Double.NaN.isNaN
-// res2: Boolean = true
-
-2.0.isNaN
-// res3: Boolean = false
-```
-
-???
-
-Checked by:
-
-* linter
-* scapegoat
-
----
-
-## Implicit classes
-
-Common usage / implementation: adding methods to existing types
-
-```scala
-object a1 {
-  implicit class IntOps(s: String) {
-    def add(i: Int): String = (s.toInt + i).toString
-  }
-}
-```
-
-```scala
-{
-  import a1._
-
-  "123".add(1)
-}
-// res0: String = 124
-```
-
----
-
-## Implicit classes (2)
-
-Bad because : identical names clash
-
-```scala
-object a2 {
-  implicit class IntOps(i: Int) {
-    def isOdd: Boolean = i % 2 != 0
-  }
-}
-```
-
-```scala
-{
-  import a1._, a2._
-
-  "123".add(1)
-}
-// <console>:18: error: value add is not a member of String
-//          "123".add(1)
-//                ^
-```
-
---
-
-Prefer :
-
-* very explicit class names to avoid naming conflicts
-* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
-
-???
-
-Checked by: nothing that I know of.
-
----
-
-## Enumerations
-
-Common implementation :
-
-```scala
-object Gender extends Enumeration {
-  val Male, Female = Value
-}
-```
-
---
-
-Bad because : no pattern match exhaustivity check
-
-```scala
-def foo(w: Gender.Value): Unit = w match {
-  case Gender.Male => println("Male")
-}
-```
-
---
-
-Prefer : sealed trait hierarchies (ADTs)
-
-```scala
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
-}
-```
 
 ---
 
@@ -332,6 +310,13 @@ final case class Foo(i: Int)
 
 ---
 
+class: center, middle
+
+# Safety (type or otherwise)
+
+
+---
+
 ## Type annotation
 
 Common implementation :
@@ -356,92 +341,6 @@ Prefer : explicitly type-annotated public methods
 ```scala
 def asOpt[A](a: A): Option[A] = Some(a)
 // asOpt: [A](a: A)Option[A]
-```
-
----
-
-## Float in ranges
-
-Common implementation :
-
-```scala
-0.1 to 0.9 by 0.1
-```
-
---
-
-Bad because : floating points don't add nicely
-
-```scala
-(0.1 to 0.9 by 0.1).toList
-// res1: List[Double] = List(0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7, 0.7999999999999999, 0.8999999999999999)
-```
-
---
-
-Prefer : integral types in ranges
-
-```scala
-(1 to 9 by 1).map(_ / 10F).toList
-// res2: List[Float] = List(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-```
-
----
-
-## Long literals
-
-Common implementation :
-
-```scala
-val l = 123l
-```
-
---
-
-Bad because : depending on the font, `l` can't be hard to distinguish from `1`
-
-```scala
-List(1, 11, 111, 111l, 11111, 11111, 11111)
-// res0: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
---
-
-Prefer : upper-case L
-
-```scala
-List(1, 11, 111, 111L, 11111, 11111, 11111)
-// res1: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
----
-
-## Checking for emptiness
-
-Common implementation :
-
-```scala
-def foo[A](s: Seq[A]): Unit =
-  println(if(s.size == 0) "empty" else "non-empty")
-```
-
---
-
-Bad because : not all collections are finite
-
-```scala
-val haha: Seq[Int] = Stream.from(1)
-
-// foo(haha) ?
-```
-
---
-
-Prefer : `isEmpty` or `nonEmpty`
-
-```scala
-Stream.from(1).isEmpty
-// res2: Boolean = false
 ```
 
 ---
@@ -520,7 +419,7 @@ def add(n: Int, m: Int): Int = return n + m
 Bad because : it doesn't do what you think it does
 
 ```scala
-def foo: () => Int = () => return () => 1
+def foo: () ⇒ Int = () ⇒ return () ⇒ 1
 ```
 
 ```scala
@@ -540,14 +439,426 @@ See https://tpolecat.github.io/2014/05/09/return.html
 
 ---
 
+## Implicit conversions
+
+Common implementation :
+
+```scala
+implicit def str2int(str: String): Int = Integer.parseInt(str)
+```
+
+--
+
+Bad because : we use types to prevent us from doing illegal operations
+
+```scala
+"foobar" / 2
+// java.lang.NumberFormatException: For input string: "foobar"
+//   at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
+//   at java.lang.Integer.parseInt(Integer.java:580)
+//   at java.lang.Integer.parseInt(Integer.java:615)
+//   at .str2int(<console>:12)
+//   ... 936 elided
+```
+
+---
+
+## Implicit conversions (2)
+
+Prefer : explicit conversions
+
+```scala
+scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
+// res1: scala.util.Try[Int] = Failure(java.lang.NumberFormatException: For input string: "foobar")
+```
+
+Note: implicit conversions to enrich existing types (type class "syntax") is ok
+
+
+---
+
+## Implicit classes
+
+Common usage / implementation: adding methods to existing types
+
+```scala
+object a1 {
+  implicit class IntOps(s: String) {
+    def add(i: Int): String = (s.toInt + i).toString
+  }
+}
+```
+
+```scala
+{
+  import a1._
+
+  "123".add(1)
+}
+// res0: String = 124
+```
+
+---
+
+## Implicit classes (2)
+
+Bad because : identical names clash
+
+```scala
+object a2 {
+  implicit class IntOps(i: Int) {
+    def isOdd: Boolean = i % 2 != 0
+  }
+}
+```
+
+```scala
+{
+  import a1._, a2._
+
+  "123".add(1)
+}
+// <console>:18: error: value add is not a member of String
+//          "123".add(1)
+//                ^
+```
+
+--
+
+Prefer :
+
+* very explicit class names to avoid naming conflicts
+* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
+
+???
+
+Checked by: nothing that I know of.
+
+---
+
+## Java to / from Scala collections
+
+Common implementation :
+
+```scala
+import collection.JavaConversions._
+
+val it: Iterator[Int] = java.util.Arrays.asList(1, 2, 3).iterator()
+```
+
+--
+
+Bad because :
+
+* deprecated since 2.12.0
+* relies on implicit conversion
+
+--
+
+Prefer : explicit conversion through `JavaConverters`
+
+```scala
+import collection.JavaConverters._
+// import collection.JavaConverters._
+
+val list = java.util.Arrays.asList(1, 2, 3).asScala
+// list: scala.collection.mutable.Buffer[Int] = Buffer(1, 2, 3)
+```
+---
+
+class: center, middle
+
+# Collections
+
+
+---
+
+## Checking for emptiness
+
+Common implementation :
+
+```scala
+def foo[A](s: Seq[A]): Unit =
+  println(if(s.size == 0) "empty" else "non-empty")
+```
+
+--
+
+Bad because : not all collections are finite
+
+```scala
+val haha: Seq[Int] = Stream.from(1)
+
+// foo(haha) ?
+```
+
+--
+
+Prefer : `isEmpty` or `nonEmpty`
+
+```scala
+Stream.from(1).isEmpty
+// res2: Boolean = false
+```
+
+---
+
+## Array comparison
+
+Common implementation :
+
+```scala
+Array(1) == Array(1)
+```
+
+--
+
+Bad because : it does not work
+
+```scala
+Array(1) == Array(1)
+// res1: Boolean = false
+```
+
+--
+
+Prefer : deep comparisons
+
+```scala
+Array(1).deep == Array(1).deep
+// res2: Boolean = true
+```
+
+???
+Checked by:
+
+* scapegoat
+
+
+---
+
+## `Traversable` safety: `head`
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).head
+// res0: Int = 1
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].head
+// java.util.NoSuchElementException: head of empty list
+//   at scala.collection.immutable.Nil$.head(List.scala:417)
+//   at scala.collection.immutable.Nil$.head(List.scala:414)
+//   ... 1022 elided
+```
+
+---
+
+## `Traversable` safety: `head` (2)
+
+Prefer : using `headOption`
+
+```scala
+Seq(1, 2, 3).headOption
+// res2: Option[Int] = Some(1)
+
+Seq.empty[Int].headOption
+// res3: Option[Int] = None
+```
+
+---
+
+## `Traversable` safety: `tail`
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).tail
+// res0: Seq[Int] = List(2, 3)
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].tail
+// java.lang.UnsupportedOperationException: tail of empty list
+//   at scala.collection.immutable.Nil$.tail(List.scala:419)
+//   at scala.collection.immutable.Nil$.tail(List.scala:414)
+//   ... 1022 elided
+```
+
+---
+
+## `Traversable` safety: `tail` (2)
+
+Prefer : `drop(1)`
+
+```scala
+Seq(1, 2, 3).drop(1)
+// res2: Seq[Int] = List(2, 3)
+
+Seq.empty[Int].drop(1)
+// res3: Seq[Int] = List()
+```
+
+---
+
+## `Traversable` safety: `init`
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).init
+// res0: Seq[Int] = List(1, 2)
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].init
+// java.lang.UnsupportedOperationException: empty.init
+//   at scala.collection.TraversableLike.init(TraversableLike.scala:451)
+//   at scala.collection.TraversableLike.init$(TraversableLike.scala:450)
+//   at scala.collection.AbstractTraversable.init(Traversable.scala:104)
+//   ... 1021 elided
+```
+
+---
+
+## `Traversable` safety: `init` (2)
+
+
+Prefer : `dropRight(1)`
+
+```scala
+Seq(1, 2, 3).dropRight(1)
+// res2: Seq[Int] = List(1, 2)
+
+Seq.empty[Int].dropRight(1)
+// res3: Seq[Int] = List()
+```
+
+---
+
+## `Traversable` safety: `last`
+
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).last
+// res0: Int = 3
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].last
+// java.util.NoSuchElementException
+//   at scala.collection.LinearSeqOptimized.last(LinearSeqOptimized.scala:146)
+//   at scala.collection.LinearSeqOptimized.last$(LinearSeqOptimized.scala:145)
+//   at scala.collection.immutable.List.last(List.scala:86)
+//   ... 1021 elided
+```
+
+---
+
+## `Traversable` safety: `last` (2)
+
+
+Prefer : `lastOption`
+
+```scala
+Seq(1, 2, 3).lastOption
+// res2: Option[Int] = Some(3)
+
+Seq.empty[Int].lastOption
+// res3: Option[Int] = None
+```
+---
+
+## `Traversable` safety: `reduce`
+
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).reduce(_ + _)
+// res0: Int = 6
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].reduce(_ + _)
+// java.lang.UnsupportedOperationException: empty.reduceLeft
+//   at scala.collection.LinearSeqOptimized.reduceLeft(LinearSeqOptimized.scala:135)
+//   at scala.collection.LinearSeqOptimized.reduceLeft$(LinearSeqOptimized.scala:134)
+//   at scala.collection.immutable.List.reduceLeft(List.scala:86)
+//   at scala.collection.TraversableOnce.reduce(TraversableOnce.scala:208)
+//   at scala.collection.TraversableOnce.reduce$(TraversableOnce.scala:208)
+//   at scala.collection.AbstractTraversable.reduce(Traversable.scala:104)
+//   ... 1018 elided
+```
+
+---
+
+## `Traversable` safety: `reduce` (2)
+
+
+Prefer :
+
+* `reduceOption`
+
+```scala
+Seq(1, 2, 3).reduceOption(_ + _)
+// res2: Option[Int] = Some(6)
+
+Seq.empty[Int].reduceOption(_ + _)
+// res3: Option[Int] = None
+```
+
+* `fold`
+
+```scala
+Seq(1, 2, 3).fold(0)(_ + _)
+// res4: Int = 6
+
+Seq.empty[Int].fold(0)(_ + _)
+// res5: Int = 0
+```
+
+---
+
+class: center, middle
+
+# Miscellaneous
+
+
+---
+
 ## Recursion
 
 Common implementation :
 
 ```scala
 def sum(is: List[Int]): Int = is match {
-  case h :: t => h + sum(t)
-  case _      => 0
+  case h :: t ⇒ h + sum(t)
+  case _      ⇒ 0
 }
 ```
 
@@ -558,7 +869,7 @@ Bad because : stack unsafe
 ```scala
 sum(List.range(1, 30000))
 // java.lang.StackOverflowError
-//   at .sum(<console>:12)
+//   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
@@ -1593,8 +1904,8 @@ Prefer : tail recursion
 ```scala
 def sum(is: List[Int]): Int = {
   def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => loop(t, acc + h)
-    case _      => acc
+    case h :: t ⇒ loop(t, acc + h)
+    case _      ⇒ acc
   }
   loop(is, 0)
 }
@@ -1618,8 +1929,8 @@ Common implementation :
 ```scala
 class Foo {
   def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
   }
 }
 ```
@@ -1634,8 +1945,8 @@ Bad because : this is not actually tail recursive
 class Foo {
   @annotation.tailrec
   def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
   }
 }
 // <console>:14: error: could not optimize @tailrec annotated method sum: it is neither private nor final so can be overridden
@@ -1647,73 +1958,6 @@ class Foo {
 
 Prefer : always annotating tail-recusrive functions with `@tailrec`
 
----
-
-## Implicit conversions
-
-Common implementation :
-
-```scala
-implicit def str2int(str: String): Int = Integer.parseInt(str)
-```
-
---
-
-Bad because : we use types to prevent us from doing illegal operations
-
-```scala
-"foobar" / 2
-// java.lang.NumberFormatException: For input string: "foobar"
-//   at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
-//   at java.lang.Integer.parseInt(Integer.java:580)
-//   at java.lang.Integer.parseInt(Integer.java:615)
-//   at .str2int(<console>:12)
-//   ... 1020 elided
-```
-
----
-
-## Implicit conversions (2)
-
-Prefer : explicit conversions
-
-```scala
-scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
-// res1: scala.util.Try[Int] = Failure(java.lang.NumberFormatException: For input string: "foobar")
-```
-
-Note: implicit conversions to enrich existing types (type class "syntax") is ok
-
----
-
-## Java to / from Scala collections
-
-Common implementation :
-
-```scala
-import collection.JavaConversions._
-
-val it: Iterator[Int] = java.util.Arrays.asList(1, 2, 3).iterator()
-```
-
---
-
-Bad because :
-
-* deprecated since 2.12.0
-* relies on implicit conversion
-
---
-
-Prefer : explicit conversion through `JavaConverters`
-
-```scala
-import collection.JavaConverters._
-// import collection.JavaConverters._
-
-val list = java.util.Arrays.asList(1, 2, 3).asScala
-// list: scala.collection.mutable.Buffer[Int] = Buffer(1, 2, 3)
-```
 
 ---
 
@@ -1739,7 +1983,12 @@ add1(Wrapper(1))
 Bad because :
 
 * runtime cost
-* not available on all platforms (although it _is_ supported by scala.js)
+* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org) 
+  and [scala native](https://github.com/scala-native/scala-native))
+  
+???
+
+Reference: https://twitter.com/den_sh/status/854261433038761984
 
 ---
 
@@ -1766,210 +2015,10 @@ add1(Wrapper(1))
 
 ---
 
-## `Traversable` safety: `head`
+class: center, middle
 
-Common implementation :
+# Conclusions
 
-```scala
-Seq(1, 2, 3).head
-// res0: Int = 1
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].head
-// java.util.NoSuchElementException: head of empty list
-//   at scala.collection.immutable.Nil$.head(List.scala:417)
-//   at scala.collection.immutable.Nil$.head(List.scala:414)
-//   ... 1022 elided
-```
-
----
-
-## `Traversable` safety: `head` (2)
-
-Prefer : using `headOption`
-
-```scala
-Seq(1, 2, 3).headOption
-// res2: Option[Int] = Some(1)
-
-Seq.empty[Int].headOption
-// res3: Option[Int] = None
-```
-
----
-
-## `Traversable` safety: `tail`
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).tail
-// res0: Seq[Int] = List(2, 3)
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].tail
-// java.lang.UnsupportedOperationException: tail of empty list
-//   at scala.collection.immutable.Nil$.tail(List.scala:419)
-//   at scala.collection.immutable.Nil$.tail(List.scala:414)
-//   ... 1022 elided
-```
-
----
-
-## `Traversable` safety: `tail` (2)
-
-Prefer : `drop(1)`
-
-```scala
-Seq(1, 2, 3).drop(1)
-// res2: Seq[Int] = List(2, 3)
-
-Seq.empty[Int].drop(1)
-// res3: Seq[Int] = List()
-```
-
----
-
-## `Traversable` safety: `init`
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).init
-// res0: Seq[Int] = List(1, 2)
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].init
-// java.lang.UnsupportedOperationException: empty.init
-//   at scala.collection.TraversableLike.init(TraversableLike.scala:451)
-//   at scala.collection.TraversableLike.init$(TraversableLike.scala:450)
-//   at scala.collection.AbstractTraversable.init(Traversable.scala:104)
-//   ... 1021 elided
-```
-
----
-
-## `Traversable` safety: `init` (2)
-
-
-Prefer : `dropRight(1)`
-
-```scala
-Seq(1, 2, 3).dropRight(1)
-// res2: Seq[Int] = List(1, 2)
-
-Seq.empty[Int].dropRight(1)
-// res3: Seq[Int] = List()
-```
-
----
-
-## `Traversable` safety: `last`
-
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).last
-// res0: Int = 3
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].last
-// java.util.NoSuchElementException
-//   at scala.collection.LinearSeqOptimized.last(LinearSeqOptimized.scala:146)
-//   at scala.collection.LinearSeqOptimized.last$(LinearSeqOptimized.scala:145)
-//   at scala.collection.immutable.List.last(List.scala:86)
-//   ... 1021 elided
-```
-
----
-
-## `Traversable` safety: `last` (2)
-
-
-Prefer : `lastOption`
-
-```scala
-Seq(1, 2, 3).lastOption
-// res2: Option[Int] = Some(3)
-
-Seq.empty[Int].lastOption
-// res3: Option[Int] = None
-```
----
-
-## `Traversable` safety: `reduce`
-
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).reduce(_ + _)
-// res0: Int = 6
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].reduce(_ + _)
-// java.lang.UnsupportedOperationException: empty.reduceLeft
-//   at scala.collection.LinearSeqOptimized.reduceLeft(LinearSeqOptimized.scala:135)
-//   at scala.collection.LinearSeqOptimized.reduceLeft$(LinearSeqOptimized.scala:134)
-//   at scala.collection.immutable.List.reduceLeft(List.scala:86)
-//   at scala.collection.TraversableOnce.reduce(TraversableOnce.scala:208)
-//   at scala.collection.TraversableOnce.reduce$(TraversableOnce.scala:208)
-//   at scala.collection.AbstractTraversable.reduce(Traversable.scala:104)
-//   ... 1018 elided
-```
-
----
-
-## `Traversable` safety: `reduce` (2)
-
-
-Prefer :
-
-* `reduceOption`
-
-```scala
-Seq(1, 2, 3).reduceOption(_ + _)
-// res2: Option[Int] = Some(6)
-
-Seq.empty[Int].reduceOption(_ + _)
-// res3: Option[Int] = None
-```
-
-* `fold`
-
-```scala
-Seq(1, 2, 3).fold(0)(_ + _)
-// res4: Int = 6
-
-Seq.empty[Int].fold(0)(_ + _)
-// res5: Int = 0
-```
 
 ---
 
