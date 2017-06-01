@@ -11,7 +11,17 @@ class: center, middle
 
 # Scala Best Practices I Wish Someone'd Told Me About
 
-Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • [ioSquare](http://iosquare.com)
+Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • [Besedo](http://besedo.com)
+
+---
+
+## Overview
+
+This is meant for Scala developers of beginner to intermediate levels.
+
+The goal is to list common bad practices often seen in Scala code, and how to avoid them.
+
+Each slide will start with a common pattern. See if you can work out what's wrong with it!
 
 ---
 
@@ -121,7 +131,7 @@ Prefer : integral types in ranges
 Common implementation :
 
 ```tut:silent:reset
-val l = 123l
+val l = 32l
 ```
 
 --
@@ -170,6 +180,14 @@ def foo(w: Gender.Value): Unit = w match {
 
 --
 
+```tut:book:fail
+foo(Gender.Female)
+```
+
+---
+
+## Enumerations (2)
+
 Prefer : sealed trait hierarchies (ADTs)
 
 ```tut:silent
@@ -179,6 +197,17 @@ object Gender {
   case object Female extends Gender
 }
 ```
+
+--
+
+The compiler now knows we're not exhaustive:
+
+```tut:book
+def foo(w: Gender): Unit = w match {
+  case Gender.Male ⇒ println("Male")
+}
+```
+
 
 ---
 
@@ -247,7 +276,7 @@ List(Gender.Male, Gender.Female)
 
 ## Algebraic Data Types (2)
 
-Prefer : have the root type extend `Product` and `Serializable`
+Prefer : having the root type extend `Product` and `Serializable`
 
 ```tut:silent
 sealed trait Gender extends Product with Serializable
@@ -369,16 +398,16 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 Bad because : where to begin...
 
+* basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
-* basically a GOTO statement
 
 --
 
 Prefer :
 
-* `Option` to convey the potential absence of a value
-* `Either` to convey a potentially failing computation
-* `Try`, if you have to deal with code that throws
+* [`Option`](http://www.scala-lang.org/api/2.12.2/scala/Option.html) to convey the potential absence of a value
+* [`Either`](http://www.scala-lang.org/api/2.12.2/scala/util/Either.html) to convey a potentially failing computation
+* [`Try`](http://www.scala-lang.org/api/2.12.2/scala/util/Try.html), if you have to deal with code that throws
 
 ---
 
@@ -386,25 +415,41 @@ Prefer :
 
 "Common" implementation :
 
-```tut:book:reset
+```tut:silent:reset
 def add(n: Int, m: Int): Int = return n + m
 ```
 
 --
 
-Bad because : it doesn't do what you think it does
+Bad because : 
 
-```tut:silent
-def foo: () ⇒ Int = () ⇒ return () ⇒ 1
+* basically a `GOTO` statement
+* it doesn't do what you think it does
+
+--
+
+```tut:book:fail
+def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
 ```
 
-```tut:fail:book
-foo()
+Doesn't seem to make sense, but let's change the type...
+
+---
+
+## The `return` keyword (2)
+
+```tut:book:fail
+def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
 ```
 
 --
 
-Prefer : never using `return`
+**ಠ_ಠ**
+
+--
+
+Prefer : never using `return`.
+
 
 ???
 
@@ -440,7 +485,7 @@ Prefer : explicit conversions
 scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
 ```
 
-Note: implicit conversions to enrich existing types (type class "syntax") is ok
+Note: implicit conversions to enrich existing types (type class "syntax") are ok.
 
 
 ---
@@ -519,7 +564,7 @@ Bad because :
 
 --
 
-Prefer : explicit conversion through `JavaConverters`
+Prefer : explicit conversion through [`JavaConverters`](http://www.scala-lang.org/api/2.12.2/scala/collection/JavaConverters$.html)
 
 ```tut:book:reset
 import collection.JavaConverters._
@@ -616,7 +661,7 @@ Seq.empty[Int].head
 
 ## `Traversable` safety: `head` (2)
 
-Prefer : using `headOption`
+Prefer : `headOption`
 
 ```tut:book
 Seq(1, 2, 3).headOption
@@ -843,7 +888,7 @@ class Foo {
 
 --
 
-Prefer : always annotating tail-recusrive functions with `@tailrec`
+Prefer : always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
 
 
 ---
@@ -917,12 +962,20 @@ class: center, middle
   * [abide](https://github.com/scala/scala-abide)
   * [scalastyle](http://www.scalastyle.org)
   * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2014/04/11/scalac-flags.html))
+---
+
+## More good and bad practices
+
+These were my favourite examples. I'm sure there are others.
+
+I'd be happy to take suggestions for additions to this list, either now or after the talk!
 
 ---
 
+
 ## More information
 
-Slides available on https://github.com/nrinaudo/talk-typeclasses-csv
+Slides available on https://nrinaudo.github.io/scala-best-practices/
 
 Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
 
