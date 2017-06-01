@@ -15,6 +15,12 @@ Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • 
 
 ---
 
+class: center, middle
+
+# Working with Numbers
+
+---
+
 ## Checking for oddness
 
 Common implementation :
@@ -47,12 +53,12 @@ Checked by:
 
 ---
 
-## Array comparison
+## Checking for `NaN`
 
 Common implementation :
 
-```tut:silent:reset
-Array(1) == Array(1)
+```tut:book:reset
+2.0 == Double.NaN
 ```
 
 --
@@ -60,21 +66,119 @@ Array(1) == Array(1)
 Bad because : it does not work
 
 ```tut:book
-Array(1) == Array(1)
+Double.NaN == Double.NaN
 ```
 
 --
 
-Prefer : deep comparisons
+Prefer : calling `isNaN`
 
 ```tut:book
-Array(1).deep == Array(1).deep
+Double.NaN.isNaN
+
+2.0.isNaN
 ```
 
 ???
+
 Checked by:
 
+* linter
 * scapegoat
+
+Normal behaviour according to IEEE 754
+
+---
+
+## Float in ranges
+
+Common implementation :
+
+```tut:silent:reset
+0.1 to 0.9 by 0.1
+```
+
+--
+
+Bad because : floating points don't add nicely
+
+```tut:book
+(0.1 to 0.9 by 0.1).toList
+```
+
+--
+
+Prefer : integral types in ranges
+
+```tut:book
+(1 to 9 by 1).map(_ / 10F).toList
+```
+
+---
+
+## Long literals
+
+Common implementation :
+
+```tut:silent:reset
+val l = 123l
+```
+
+--
+
+Bad because : depending on the font, `l` can't be hard to distinguish from `1`
+
+```tut:book
+List(1, 11, 111, 111l, 11111, 11111, 11111)
+```
+
+--
+
+Prefer : upper-case L
+
+```tut:book
+List(1, 11, 111, 111L, 11111, 11111, 11111)
+```
+
+---
+
+class: center, middle
+
+# Data Representation
+
+---
+
+## Enumerations
+
+Common implementation :
+
+```tut:silent:reset
+object Gender extends Enumeration {
+  val Male, Female = Value
+}
+```
+
+--
+
+Bad because : no pattern match exhaustivity check
+
+```tut:silent
+def foo(w: Gender.Value): Unit = w match {
+  case Gender.Male ⇒ println("Male")
+}
+```
+
+--
+
+Prefer : sealed trait hierarchies (ADTs)
+
+```tut:silent
+sealed trait Gender
+object Gender {
+  case object Male extends Gender
+  case object Female extends Gender
+}
+```
 
 ---
 
@@ -116,130 +220,6 @@ Checked by:
 
 * scapegoat
 * wartremover
-
----
-
-## Checking for `NaN`
-
-Common implementation :
-
-```tut:book:reset
-2.0 == Double.NaN
-```
-
---
-
-Bad because : it does not work
-
-```tut:book
-Double.NaN == Double.NaN
-```
-
---
-
-Prefer : calling `isNaN`
-
-```tut:book
-Double.NaN.isNaN
-
-2.0.isNaN
-```
-
-???
-
-Checked by:
-
-* linter
-* scapegoat
-
----
-
-## Implicit classes
-
-Common usage / implementation: adding methods to existing types
-
-```tut:silent:reset
-object a1 {
-  implicit class IntOps(s: String) {
-    def add(i: Int): String = (s.toInt + i).toString
-  }
-}
-```
-
-```tut:book
-{
-  import a1._
-
-  "123".add(1)
-}
-```
-
----
-
-## Implicit classes (2)
-
-Bad because : identical names clash
-
-```tut:silent
-object a2 {
-  implicit class IntOps(i: Int) {
-    def isOdd: Boolean = i % 2 != 0
-  }
-}
-```
-
-```tut:book:fail
-{
-  import a1._, a2._
-
-  "123".add(1)
-}
-```
-
---
-
-Prefer :
-
-* very explicit class names to avoid naming conflicts
-* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
-
-???
-
-Checked by: nothing that I know of.
-
----
-
-## Enumerations
-
-Common implementation :
-
-```tut:silent:reset
-object Gender extends Enumeration {
-  val Male, Female = Value
-}
-```
-
---
-
-Bad because : no pattern match exhaustivity check
-
-```tut:silent
-def foo(w: Gender.Value): Unit = w match {
-  case Gender.Male => println("Male")
-}
-```
-
---
-
-Prefer : sealed trait hierarchies (ADTs)
-
-```tut:silent
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
-}
-```
 
 ---
 
@@ -315,6 +295,13 @@ final case class Foo(i: Int)
 
 ---
 
+class: center, middle
+
+# Safety (type or otherwise)
+
+
+---
+
 ## Type annotation
 
 Common implementation :
@@ -337,87 +324,6 @@ Prefer : explicitly type-annotated public methods
 
 ```tut:book
 def asOpt[A](a: A): Option[A] = Some(a)
-```
-
----
-
-## Float in ranges
-
-Common implementation :
-
-```tut:silent:reset
-0.1 to 0.9 by 0.1
-```
-
---
-
-Bad because : floating points don't add nicely
-
-```tut:book
-(0.1 to 0.9 by 0.1).toList
-```
-
---
-
-Prefer : integral types in ranges
-
-```tut:book
-(1 to 9 by 1).map(_ / 10F).toList
-```
-
----
-
-## Long literals
-
-Common implementation :
-
-```tut:silent:reset
-val l = 123l
-```
-
---
-
-Bad because : depending on the font, `l` can't be hard to distinguish from `1`
-
-```tut:book
-List(1, 11, 111, 111l, 11111, 11111, 11111)
-```
-
---
-
-Prefer : upper-case L
-
-```tut:book
-List(1, 11, 111, 111L, 11111, 11111, 11111)
-```
-
----
-
-## Checking for emptiness
-
-Common implementation :
-
-```tut:silent:reset
-def foo[A](s: Seq[A]): Unit =
-  println(if(s.size == 0) "empty" else "non-empty")
-```
-
---
-
-Bad because : not all collections are finite
-
-```tut:silent
-val haha: Seq[Int] = Stream.from(1)
-
-// foo(haha) ?
-```
-
---
-
-Prefer : `isEmpty` or `nonEmpty`
-
-```tut:book
-Stream.from(1).isEmpty
 ```
 
 ---
@@ -489,7 +395,7 @@ def add(n: Int, m: Int): Int = return n + m
 Bad because : it doesn't do what you think it does
 
 ```tut:silent
-def foo: () => Int = () => return () => 1
+def foo: () ⇒ Int = () ⇒ return () ⇒ 1
 ```
 
 ```tut:fail:book
@@ -505,86 +411,6 @@ Prefer : never using `return`
 Also: not referentially transparent
 
 See https://tpolecat.github.io/2014/05/09/return.html
-
----
-
-## Recursion
-
-Common implementation :
-
-```tut:silent:reset
-def sum(is: List[Int]): Int = is match {
-  case h :: t => h + sum(t)
-  case _      => 0
-}
-```
-
---
-
-Bad because : stack unsafe
-
-```tut:fail:book
-sum(List.range(1, 30000))
-```
-
----
-
-## Recursion (2)
-
-Prefer : tail recursion
-
-```tut:silent
-def sum(is: List[Int]): Int = {
-  def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => loop(t, acc + h)
-    case _      => acc
-  }
-  loop(is, 0)
-}
-```
-
---
-
-Tail recursion is stack-safe:
-
-```tut:book
-sum(List.range(1, 30000))
-```
-
----
-
-## Tail recursion
-
-Common implementation :
-
-```tut:silent:reset
-class Foo {
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
-  }
-}
-```
-
----
-
-## Tail recursion (2)
-
-Bad because : this is not actually tail recursive
-
-```tut:book:fail
-class Foo {
-  @annotation.tailrec
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
-  }
-}
-```
-
---
-
-Prefer : always annotating tail-recusrive functions with `@tailrec`
 
 ---
 
@@ -616,6 +442,62 @@ scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
 
 Note: implicit conversions to enrich existing types (type class "syntax") is ok
 
+
+---
+
+## Implicit classes
+
+Common usage / implementation: adding methods to existing types
+
+```tut:silent:reset
+object a1 {
+  implicit class IntOps(s: String) {
+    def add(i: Int): String = (s.toInt + i).toString
+  }
+}
+```
+
+```tut:book
+{
+  import a1._
+
+  "123".add(1)
+}
+```
+
+---
+
+## Implicit classes (2)
+
+Bad because : identical names clash
+
+```tut:silent
+object a2 {
+  implicit class IntOps(i: Int) {
+    def isOdd: Boolean = i % 2 != 0
+  }
+}
+```
+
+```tut:book:fail
+{
+  import a1._, a2._
+
+  "123".add(1)
+}
+```
+
+--
+
+Prefer :
+
+* very explicit class names to avoid naming conflicts
+* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
+
+???
+
+Checked by: nothing that I know of.
+
 ---
 
 ## Java to / from Scala collections
@@ -644,53 +526,73 @@ import collection.JavaConverters._
 
 val list = java.util.Arrays.asList(1, 2, 3).asScala
 ```
+---
+
+class: center, middle
+
+# Collections
+
 
 ---
 
-## Structural types
+## Checking for emptiness
 
 Common implementation :
 
 ```tut:silent:reset
-def add1(x: { def get: Int }): Int = 1 + x.get
-
-case class Wrapper(i: Int) {
-  def get: Int = i
-}
-```
-
-```tut:book
-add1(Wrapper(1))
+def foo[A](s: Seq[A]): Unit =
+  println(if(s.size == 0) "empty" else "non-empty")
 ```
 
 --
 
-Bad because :
+Bad because : not all collections are finite
 
-* runtime cost
-* not available on all platforms (although it _is_ supported by scala.js)
+```tut:silent
+val haha: Seq[Int] = Stream.from(1)
+
+// foo(haha) ?
+```
+
+--
+
+Prefer : `isEmpty` or `nonEmpty`
+
+```tut:book
+Stream.from(1).isEmpty
+```
 
 ---
 
-## Structural types (2)
+## Array comparison
 
-Prefer : type classes
+Common implementation :
 
-```tut:silent
-trait HasGet[A] {
-  def get(a: A): Int
-}
-
-implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
-  def get(a: Wrapper) = a.i
-}
-
-def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
+```tut:silent:reset
+Array(1) == Array(1)
 ```
+
+--
+
+Bad because : it does not work
 
 ```tut:book
-add1(Wrapper(1))
+Array(1) == Array(1)
 ```
+
+--
+
+Prefer : deep comparisons
+
+```tut:book
+Array(1).deep == Array(1).deep
+```
+
+???
+Checked by:
+
+* scapegoat
+
 
 ---
 
@@ -855,6 +757,153 @@ Seq(1, 2, 3).fold(0)(_ + _)
 
 Seq.empty[Int].fold(0)(_ + _)
 ```
+
+---
+
+class: center, middle
+
+# Miscellaneous
+
+
+---
+
+## Recursion
+
+Common implementation :
+
+```tut:silent:reset
+def sum(is: List[Int]): Int = is match {
+  case h :: t ⇒ h + sum(t)
+  case _      ⇒ 0
+}
+```
+
+--
+
+Bad because : stack unsafe
+
+```tut:fail:book
+sum(List.range(1, 30000))
+```
+
+---
+
+## Recursion (2)
+
+Prefer : tail recursion
+
+```tut:silent
+def sum(is: List[Int]): Int = {
+  def loop(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ loop(t, acc + h)
+    case _      ⇒ acc
+  }
+  loop(is, 0)
+}
+```
+
+--
+
+Tail recursion is stack-safe:
+
+```tut:book
+sum(List.range(1, 30000))
+```
+
+---
+
+## Tail recursion
+
+Common implementation :
+
+```tut:silent:reset
+class Foo {
+  def sum(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
+  }
+}
+```
+
+---
+
+## Tail recursion (2)
+
+Bad because : this is not actually tail recursive
+
+```tut:book:fail
+class Foo {
+  @annotation.tailrec
+  def sum(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
+  }
+}
+```
+
+--
+
+Prefer : always annotating tail-recusrive functions with `@tailrec`
+
+
+---
+
+## Structural types
+
+Common implementation :
+
+```tut:silent:reset
+def add1(x: { def get: Int }): Int = 1 + x.get
+
+case class Wrapper(i: Int) {
+  def get: Int = i
+}
+```
+
+```tut:book
+add1(Wrapper(1))
+```
+
+--
+
+Bad because :
+
+* runtime cost
+* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org) 
+  and [scala native](https://github.com/scala-native/scala-native))
+  
+???
+
+Reference: https://twitter.com/den_sh/status/854261433038761984
+
+---
+
+## Structural types (2)
+
+Prefer : type classes
+
+```tut:silent
+trait HasGet[A] {
+  def get(a: A): Int
+}
+
+implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
+  def get(a: Wrapper) = a.i
+}
+
+def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
+```
+
+```tut:book
+add1(Wrapper(1))
+```
+
+---
+
+class: center, middle
+
+# Conclusions
+
 
 ---
 
