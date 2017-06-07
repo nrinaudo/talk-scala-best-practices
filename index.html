@@ -452,7 +452,7 @@ def add(n: Int, m: Int): Int = return n + m
 
 --
 
-Bad because : 
+Bad because :
 
 * basically a `GOTO` statement
 * it doesn't do what you think it does
@@ -683,10 +683,10 @@ Array(1) == Array(1)
 
 --
 
-Prefer : deep comparisons
+Prefer : using `sameElements`
 
 ```scala
-Array(1).deep == Array(1).deep
+Array(1).sameElements(Array(1))
 // res2: Boolean = true
 ```
 
@@ -2044,9 +2044,9 @@ add1(Wrapper(1))
 Bad because :
 
 * runtime cost
-* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org) 
+* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org)
   and [scala native](https://github.com/scala-native/scala-native))
-  
+
 ???
 
 Reference: https://twitter.com/den_sh/status/854261433038761984
