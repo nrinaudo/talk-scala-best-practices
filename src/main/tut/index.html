@@ -367,10 +367,11 @@ Common implementation :
 
 --
 
-Bad because : `+` is often expected to mean something else
+Bad because : `+` often does not behave coherently
 
-```tut:fail
-List(1) + 2
+```tut:book
+List("foo") + "bar"
+Set("foo") + "bar"
 ```
 
 ???
