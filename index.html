@@ -393,15 +393,14 @@ Common implementation :
 
 --
 
-Bad because : `+` is often expected to mean something else
+Bad because : `+` often does not behave coherently
 
 ```scala
-scala> List(1) + 2
-<console>:13: error: type mismatch;
- found   : Int(2)
- required: String
-       List(1) + 2
-                 ^
+List("foo") + "bar"
+// res1: String = List(foo)bar
+
+Set("foo") + "bar"
+// res2: scala.collection.immutable.Set[String] = Set(foo, bar)
 ```
 
 ???
