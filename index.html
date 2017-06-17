@@ -200,7 +200,7 @@ foo(Gender.Female)
 
 ---
 
-## Enumerations (2)
+## Enumerations ²
 
 Prefer : sealed trait hierarchies (ADTs)
 
@@ -294,7 +294,7 @@ List(Gender.Male, Gender.Female)
 
 ---
 
-## Algebraic Data Types (2)
+## Algebraic Data Types ²
 
 Prefer : having the root type extend `Product` and `Serializable`
 
@@ -471,7 +471,7 @@ Doesn't seem to make sense, but let's change the type...
 
 ---
 
-## The `return` keyword (2)
+## The `return` keyword ²
 
 ```scala
 def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
@@ -523,7 +523,7 @@ Bad because : we use types to prevent us from doing illegal operations
 
 ---
 
-## Implicit conversions (2)
+## Implicit conversions ²
 
 Prefer : explicit conversions
 
@@ -560,7 +560,7 @@ object a1 {
 
 ---
 
-## Implicit classes (2)
+## Implicit classes ²
 
 Bad because : identical names clash
 
@@ -720,7 +720,7 @@ Seq.empty[Int].head
 
 ---
 
-## `Traversable` safety: `head` (2)
+## `Traversable` safety: `head` ²
 
 Prefer : `headOption`
 
@@ -757,7 +757,7 @@ Seq.empty[Int].tail
 
 ---
 
-## `Traversable` safety: `tail` (2)
+## `Traversable` safety: `tail` ²
 
 Prefer : `drop(1)`
 
@@ -795,7 +795,7 @@ Seq.empty[Int].init
 
 ---
 
-## `Traversable` safety: `init` (2)
+## `Traversable` safety: `init` ²
 
 
 Prefer : `dropRight(1)`
@@ -835,7 +835,7 @@ Seq.empty[Int].last
 
 ---
 
-## `Traversable` safety: `last` (2)
+## `Traversable` safety: `last` ²
 
 
 Prefer : `lastOption`
@@ -877,7 +877,7 @@ Seq.empty[Int].reduce(_ + _)
 
 ---
 
-## `Traversable` safety: `reduce` (2)
+## `Traversable` safety: `reduce` ²
 
 
 Prefer :
@@ -1957,7 +1957,7 @@ sum(List.range(1, 30000))
 
 ---
 
-## Recursion (2)
+## Recursion ²
 
 Prefer : tail recursion
 
@@ -1997,7 +1997,7 @@ class Foo {
 
 ---
 
-## Tail recursion (2)
+## Tail recursion ²
 
 Bad because : this is not actually tail recursive
 
@@ -2052,7 +2052,7 @@ Reference: https://twitter.com/den_sh/status/854261433038761984
 
 ---
 
-## Structural types (2)
+## Structural types ²
 
 Prefer : type classes
 
