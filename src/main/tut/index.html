@@ -163,8 +163,8 @@ class: center, middle
 Common implementation :
 
 ```tut:silent:reset
-object Gender extends Enumeration {
-  val Male, Female = Value
+object Status extends Enumeration {
+  val Ok, Nok = Value
 }
 ```
 
@@ -173,15 +173,15 @@ object Gender extends Enumeration {
 Bad because : no pattern match exhaustivity check
 
 ```tut:silent
-def foo(w: Gender.Value): Unit = w match {
-  case Gender.Male ⇒ println("Male")
+def foo(w: Status.Value): Unit = w match {
+  case Status.Ok ⇒ println("ok")
 }
 ```
 
 --
 
 ```tut:book:fail
-foo(Gender.Female)
+foo(Status.Nok)
 ```
 
 ---
@@ -191,10 +191,10 @@ foo(Gender.Female)
 Prefer : sealed trait hierarchies (ADTs)
 
 ```tut:silent
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -203,8 +203,8 @@ object Gender {
 The compiler now knows we're not exhaustive:
 
 ```tut:book
-def foo(w: Gender): Unit = w match {
-  case Gender.Male ⇒ println("Male")
+def foo(w: Status): Unit = w match {
+  case Status.Ok ⇒ println("ok")
 }
 ```
 
@@ -257,10 +257,10 @@ Checked by:
 Common implementation :
 
 ```tut:silent:reset
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -269,7 +269,7 @@ object Gender {
 Bad because : noisy type inference
 
 ```tut:book
-List(Gender.Male, Gender.Female)
+List(Status.Ok, Status.Nok)
 ```
 
 ---
@@ -279,10 +279,10 @@ List(Gender.Male, Gender.Female)
 Prefer : having the root type extend `Product` and `Serializable`
 
 ```tut:silent
-sealed trait Gender extends Product with Serializable
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status extends Product with Serializable
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -291,7 +291,7 @@ object Gender {
 The correct type is now inferred:
 
 ```tut:book
-List(Gender.Male, Gender.Female)
+List(Status.Ok, Status.Nok)
 ```
 
 ---
