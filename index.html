@@ -174,8 +174,8 @@ class: center, middle
 Common implementation :
 
 ```scala
-object Gender extends Enumeration {
-  val Male, Female = Value
+object Status extends Enumeration {
+  val Ok, Nok = Value
 }
 ```
 
@@ -184,16 +184,16 @@ object Gender extends Enumeration {
 Bad because : no pattern match exhaustivity check
 
 ```scala
-def foo(w: Gender.Value): Unit = w match {
-  case Gender.Male ⇒ println("Male")
+def foo(w: Status.Value): Unit = w match {
+  case Status.Ok ⇒ println("ok")
 }
 ```
 
 --
 
 ```scala
-foo(Gender.Female)
-// scala.MatchError: Female (of class scala.Enumeration$Val)
+foo(Status.Nok)
+// scala.MatchError: Nok (of class scala.Enumeration$Val)
 //   at .foo(<console>:14)
 //   ... 444 elided
 ```
@@ -205,10 +205,10 @@ foo(Gender.Female)
 Prefer : sealed trait hierarchies (ADTs)
 
 ```scala
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -217,14 +217,14 @@ object Gender {
 The compiler now knows we're not exhaustive:
 
 ```scala
-def foo(w: Gender): Unit = w match {
-  case Gender.Male ⇒ println("Male")
+def foo(w: Status): Unit = w match {
+  case Status.Ok ⇒ println("ok")
 }
 // <console>:14: warning: match may not be exhaustive.
-// It would fail on the following input: Female
-//        def foo(w: Gender): Unit = w match {
+// It would fail on the following input: Nok
+//        def foo(w: Status): Unit = w match {
 //                                   ^
-// foo: (w: Gender)Unit
+// foo: (w: Status)Unit
 ```
 
 
@@ -276,10 +276,10 @@ Checked by:
 Common implementation :
 
 ```scala
-sealed trait Gender
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -288,8 +288,8 @@ object Gender {
 Bad because : noisy type inference
 
 ```scala
-List(Gender.Male, Gender.Female)
-// res0: List[Product with Serializable with Gender] = List(Male, Female)
+List(Status.Ok, Status.Nok)
+// res0: List[Product with Serializable with Status] = List(Ok, Nok)
 ```
 
 ---
@@ -299,10 +299,10 @@ List(Gender.Male, Gender.Female)
 Prefer : having the root type extend `Product` and `Serializable`
 
 ```scala
-sealed trait Gender extends Product with Serializable
-object Gender {
-  case object Male extends Gender
-  case object Female extends Gender
+sealed trait Status extends Product with Serializable
+object Status {
+  case object Ok extends Status
+  case object Nok extends Status
 }
 ```
 
@@ -311,8 +311,8 @@ object Gender {
 The correct type is now inferred:
 
 ```scala
-List(Gender.Male, Gender.Female)
-// res1: List[Gender] = List(Male, Female)
+List(Status.Ok, Status.Nok)
+// res1: List[Status] = List(Ok, Nok)
 ```
 
 ---
@@ -929,7 +929,7 @@ Bad because : stack unsafe
 ```scala
 sum(List.range(1, 30000))
 // java.lang.StackOverflowError
-//   at .sum(<console>:13)
+//   at .sum(<console>:12)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
