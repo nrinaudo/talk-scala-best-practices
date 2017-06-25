@@ -734,6 +734,45 @@ Seq.empty[Int].headOption
 
 ---
 
+## `Traversable` safety: `last`
+
+
+Common implementation :
+
+```scala
+Seq(1, 2, 3).last
+// res0: Int = 3
+```
+
+--
+
+Bad because : some collections are empty
+
+```scala
+Seq.empty[Int].last
+// java.util.NoSuchElementException
+//   at scala.collection.LinearSeqOptimized.last(LinearSeqOptimized.scala:146)
+//   at scala.collection.LinearSeqOptimized.last$(LinearSeqOptimized.scala:145)
+//   at scala.collection.immutable.List.last(List.scala:86)
+//   ... 1021 elided
+```
+
+---
+
+## `Traversable` safety: `last` ²
+
+
+Prefer : `lastOption`
+
+```scala
+Seq(1, 2, 3).lastOption
+// res2: Option[Int] = Some(3)
+
+Seq.empty[Int].lastOption
+// res3: Option[Int] = None
+```
+---
+
 ## `Traversable` safety: `tail`
 
 Common implementation :
@@ -808,45 +847,6 @@ Seq.empty[Int].dropRight(1)
 // res3: Seq[Int] = List()
 ```
 
----
-
-## `Traversable` safety: `last`
-
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).last
-// res0: Int = 3
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].last
-// java.util.NoSuchElementException
-//   at scala.collection.LinearSeqOptimized.last(LinearSeqOptimized.scala:146)
-//   at scala.collection.LinearSeqOptimized.last$(LinearSeqOptimized.scala:145)
-//   at scala.collection.immutable.List.last(List.scala:86)
-//   ... 1021 elided
-```
-
----
-
-## `Traversable` safety: `last` ²
-
-
-Prefer : `lastOption`
-
-```scala
-Seq(1, 2, 3).lastOption
-// res2: Option[Int] = Some(3)
-
-Seq.empty[Int].lastOption
-// res3: Option[Int] = None
-```
 ---
 
 ## `Traversable` safety: `reduce`
