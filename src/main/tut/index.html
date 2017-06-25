@@ -324,6 +324,58 @@ final case class Foo(i: Int)
 
 ---
 
+## Structural types
+
+Common implementation :
+
+```tut:silent:reset
+def add1(x: { def get: Int }): Int = 1 + x.get
+
+case class Wrapper(i: Int) {
+  def get: Int = i
+}
+```
+
+```tut:book
+add1(Wrapper(1))
+```
+
+--
+
+Bad because :
+
+* runtime cost
+* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org)
+  and [scala native](https://github.com/scala-native/scala-native))
+
+???
+
+Reference: https://twitter.com/den_sh/status/854261433038761984
+
+---
+
+## Structural types ²
+
+Prefer : type classes
+
+```tut:silent
+trait HasGet[A] {
+  def get(a: A): Int
+}
+
+implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
+  def get(a: Wrapper) = a.i
+}
+
+def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
+```
+
+```tut:book
+add1(Wrapper(1))
+```
+
+---
+
 class: center, middle
 
 # Safety (type or otherwise)
@@ -459,6 +511,87 @@ Also: not referentially transparent
 See https://tpolecat.github.io/2014/05/09/return.html
 
 ---
+
+## Recursion
+
+Common implementation :
+
+```tut:silent:reset
+def sum(is: List[Int]): Int = is match {
+  case h :: t ⇒ h + sum(t)
+  case _      ⇒ 0
+}
+```
+
+--
+
+Bad because : stack unsafe
+
+```tut:fail:book
+sum(List.range(1, 30000))
+```
+
+---
+
+## Recursion ²
+
+Prefer : tail recursion
+
+```tut:silent
+def sum(is: List[Int]): Int = {
+  def loop(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ loop(t, acc + h)
+    case _      ⇒ acc
+  }
+  loop(is, 0)
+}
+```
+
+--
+
+Tail recursion is stack-safe:
+
+```tut:book
+sum(List.range(1, 30000))
+```
+
+---
+
+## Tail recursion
+
+Common implementation :
+
+```tut:silent:reset
+class Foo {
+  def sum(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
+  }
+}
+```
+
+---
+
+## Tail recursion ²
+
+Bad because : this is not actually tail recursive
+
+```tut:book:fail
+class Foo {
+  @annotation.tailrec
+  def sum(cur: List[Int], acc: Int): Int = cur match {
+    case h :: t ⇒ sum(t, acc + h)
+    case _      ⇒ acc
+  }
+}
+```
+
+--
+
+Prefer : always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
+
+---
+
 
 ## Implicit conversions
 
@@ -672,6 +805,37 @@ Seq.empty[Int].headOption
 
 ---
 
+## `Traversable` safety: `last`
+
+
+Common implementation :
+
+```tut:book:reset
+Seq(1, 2, 3).last
+```
+
+--
+
+Bad because : some collections are empty
+
+```tut:book:fail
+Seq.empty[Int].last
+```
+
+---
+
+## `Traversable` safety: `last` ²
+
+
+Prefer : `lastOption`
+
+```tut:book
+Seq(1, 2, 3).lastOption
+
+Seq.empty[Int].lastOption
+```
+---
+
 ## `Traversable` safety: `tail`
 
 Common implementation :
@@ -733,37 +897,6 @@ Seq.empty[Int].dropRight(1)
 
 ---
 
-## `Traversable` safety: `last`
-
-
-Common implementation :
-
-```tut:book:reset
-Seq(1, 2, 3).last
-```
-
---
-
-Bad because : some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].last
-```
-
----
-
-## `Traversable` safety: `last` ²
-
-
-Prefer : `lastOption`
-
-```tut:book
-Seq(1, 2, 3).lastOption
-
-Seq.empty[Int].lastOption
-```
----
-
 ## `Traversable` safety: `reduce`
 
 
@@ -802,146 +935,6 @@ Seq.empty[Int].reduceOption(_ + _)
 Seq(1, 2, 3).fold(0)(_ + _)
 
 Seq.empty[Int].fold(0)(_ + _)
-```
-
----
-
-class: center, middle
-
-# Miscellaneous
-
-
----
-
-## Recursion
-
-Common implementation :
-
-```tut:silent:reset
-def sum(is: List[Int]): Int = is match {
-  case h :: t ⇒ h + sum(t)
-  case _      ⇒ 0
-}
-```
-
---
-
-Bad because : stack unsafe
-
-```tut:fail:book
-sum(List.range(1, 30000))
-```
-
----
-
-## Recursion ²
-
-Prefer : tail recursion
-
-```tut:silent
-def sum(is: List[Int]): Int = {
-  def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ loop(t, acc + h)
-    case _      ⇒ acc
-  }
-  loop(is, 0)
-}
-```
-
---
-
-Tail recursion is stack-safe:
-
-```tut:book
-sum(List.range(1, 30000))
-```
-
----
-
-## Tail recursion
-
-Common implementation :
-
-```tut:silent:reset
-class Foo {
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
-  }
-}
-```
-
----
-
-## Tail recursion ²
-
-Bad because : this is not actually tail recursive
-
-```tut:book:fail
-class Foo {
-  @annotation.tailrec
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
-  }
-}
-```
-
---
-
-Prefer : always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
-
-
----
-
-## Structural types
-
-Common implementation :
-
-```tut:silent:reset
-def add1(x: { def get: Int }): Int = 1 + x.get
-
-case class Wrapper(i: Int) {
-  def get: Int = i
-}
-```
-
-```tut:book
-add1(Wrapper(1))
-```
-
---
-
-Bad because :
-
-* runtime cost
-* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org)
-  and [scala native](https://github.com/scala-native/scala-native))
-
-???
-
-Reference: https://twitter.com/den_sh/status/854261433038761984
-
----
-
-## Structural types ²
-
-Prefer : type classes
-
-```tut:silent
-trait HasGet[A] {
-  def get(a: A): Int
-}
-
-implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
-  def get(a: Wrapper) = a.i
-}
-
-def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
-```
-
-```tut:book
-add1(Wrapper(1))
 ```
 
 ---
