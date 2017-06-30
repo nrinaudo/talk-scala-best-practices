@@ -331,7 +331,7 @@ Common implementation :
 ```tut:silent:reset
 def add1(x: { def get: Int }): Int = 1 + x.get
 
-case class Wrapper(i: Int) {
+final case class Wrapper(i: Int) {
   def get: Int = i
 }
 ```
@@ -666,7 +666,10 @@ object a2 {
 }
 ```
 
---
+---
+
+## Implicit classes ³
+
 
 Prefer :
 
