@@ -208,48 +208,6 @@ def foo(w: Status): Unit = w match {
 }
 ```
 
-
----
-
-## Sealed traits
-
-Common implementation :
-
-```tut:silent:reset
-sealed trait Foo
-
-class Bar extends Foo
-```
-
---
-
-Bad because : the seal might leak
-
-```tut:silent
-// In another file, compiles without a problem
-class FooBar extends Bar
-```
-
---
-
-Prefer : `final` or `sealed` descendants
-
-```tut:silent
-sealed trait Foo
-
-final class Bar extends Foo
-```
-
-This applies even if `Bar` is a case class.
-
-
-???
-
-Checked by:
-
-* scapegoat
-* wartremover
-
 ---
 
 ## Algebraic Data Types
@@ -293,6 +251,47 @@ The correct type is now inferred:
 ```tut:book
 List(Status.Ok, Status.Nok)
 ```
+
+---
+
+## Sealed traits
+
+Common implementation :
+
+```tut:silent:reset
+sealed trait Foo
+
+class Bar extends Foo
+```
+
+--
+
+Bad because : the seal might leak
+
+```tut:silent
+// In another file, compiles without a problem
+class FooBar extends Bar
+```
+
+--
+
+Prefer : `final` or `sealed` descendants
+
+```tut:silent
+sealed trait Foo
+
+final class Bar extends Foo
+```
+
+This applies even if `Bar` is a case class.
+
+
+???
+
+Checked by:
+
+* scapegoat
+* wartremover
 
 ---
 
@@ -426,9 +425,15 @@ List("foo") + "bar"
 Set("foo") + "bar"
 ```
 
-???
+---
 
-Note that this would be perfectly valid with `Set`
+## String concatenation ²
+
+Let's not even bring this abomination up:
+
+```tut:book:fail
+List(1) + 2
+```
 
 --
 
@@ -493,6 +498,16 @@ Doesn't seem to make sense, but let's change the type...
 
 ```tut:book:fail
 def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
+```
+
+Fine, let's play along...
+
+---
+
+## The `return` keyword ³
+
+```tut:book:fail
+def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
 ```
 
 --
@@ -624,37 +639,37 @@ Note: implicit conversions to enrich existing types (type class "syntax") are ok
 
 ---
 
-## Implicit classes
+## Implicit resolution
 
-Common usage / implementation: adding methods to existing types
+Common implementation :
 
 ```tut:silent:reset
+case class Config(port: Int)
+
 object a1 {
-  implicit class IntOps(s: String) {
-    def add(i: Int): String = (s.toInt + i).toString
-  }
+  implicit val defaultConfig: Config = Config(8080)
 }
+
+def getPort(implicit c: Config): Int = c.port
 ```
 
 ```tut:book
 {
   import a1._
 
-  "123".add(1)
+  getPort
 }
 ```
 
 ---
 
-## Implicit classes ²
+## Implicit resolution ²
 
 Bad because : identical names clash
 
 ```tut:silent
 object a2 {
-  implicit class IntOps(i: Int) {
-    def isOdd: Boolean = i % 2 != 0
-  }
+  implicit val defaultConfig: Int = 12345
 }
 ```
 
@@ -662,23 +677,18 @@ object a2 {
 {
   import a1._, a2._
 
-  "123".add(1)
+  getPort
 }
 ```
 
 ---
 
-## Implicit classes ³
+## Implicit resolution ³
 
 
 Prefer :
-
 * very explicit class names to avoid naming conflicts
-* `ToXYZOps` pattern (see [Simulacrum](https://github.com/mpilquist/simulacrum) for an example)
-
-???
-
-Checked by: nothing that I know of.
+* unfortunately, no foolproof method I know of
 
 ---
 
