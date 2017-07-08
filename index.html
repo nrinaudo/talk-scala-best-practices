@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Scala Best Practices I Wish Someone'd Told Me About</title>
+    <title>Pattern matching in Scala</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" type="text/css" href="css/style.css"/>
   </head>
@@ -9,7 +9,7 @@
       <textarea id="source">
 class: center, middle
 
-# Scala Best Practices I Wish Someone'd Told Me About
+# Pattern matching in Scala
 
 Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • [Besedo](http://besedo.com)
 
@@ -17,2110 +17,566 @@ Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • 
 
 ## Overview
 
-This is meant for Scala developers of beginner to intermediate levels.
+This is mostly meant for Scala beginners, although more advanced ones might still learn a thing or two.
 
-The goal is to list common bad practices often seen in Scala code, and how to avoid them.
-
-Each slide will start with a common pattern. See if you can work out what's wrong with it!
+The goal is to show what pattern matching is and for attendants to get a feel for when and how it should be used.
 
 ---
 
 class: center, middle
 
-# Working with Numbers
+# What is pattern matching?
 
 ---
 
-## Checking for oddness
+## Running Example
 
-Common implementation :
-
-```scala
-3 % 2 == 1
-// res0: Boolean = true
-```
-
---
-
-Bad because : fails on negative numbers
+In this section, we'll be using the following ADT for examples:
 
 ```scala
--3 % 2 == 1
-// res1: Boolean = false
-```
-
---
-
-Prefer :
-
-```scala
--3 % 2 != 0
-// res2: Boolean = true
-```
-
-???
-
-Checked by:
-
-* scapegoat
-
----
-
-## Checking for `NaN`
-
-Common implementation :
-
-```scala
-2.0 == Double.NaN
-// res0: Boolean = false
-```
-
---
-
-Bad because : it does not work
-
-```scala
-Double.NaN == Double.NaN
-// res1: Boolean = false
-```
-
---
-
-Prefer : calling `isNaN`
-
-```scala
-Double.NaN.isNaN
-// res2: Boolean = true
-
-2.0.isNaN
-// res3: Boolean = false
-```
-
-???
-
-Checked by:
-
-* linter
-* scapegoat
-
-Normal behaviour according to IEEE 754
-
----
-
-## Float in ranges
-
-Common implementation :
-
-```scala
-0.1 to 0.9 by 0.1
-```
-
---
-
-Bad because : floating points don't add nicely
-
-```scala
-(0.1 to 0.9 by 0.1).toList
-// res1: List[Double] = List(0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7, 0.7999999999999999, 0.8999999999999999)
-```
-
---
-
-Prefer : integral types in ranges
-
-```scala
-(1 to 9 by 1).map(_ / 10F).toList
-// res2: List[Float] = List(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-```
-
----
-
-## Long literals
-
-Common implementation :
-
-```scala
-val l = 32l
-```
-
---
-
-Bad because : depending on the font, `l` can't be hard to distinguish from `1`
-
-```scala
-List(1, 11, 111, 111l, 11111, 11111, 11111)
-// res0: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
---
-
-Prefer : upper-case L
-
-```scala
-List(1, 11, 111, 111L, 11111, 11111, 11111)
-// res1: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
----
-
-class: center, middle
-
-# Data Representation
-
----
-
-## Enumerations
-
-Common implementation :
-
-```scala
-object Status extends Enumeration {
-  val Ok, Nok = Value
-}
-```
-
---
-
-Bad because : no pattern match exhaustivity check
-
-```scala
-def foo(w: Status.Value): Unit = w match {
-  case Status.Ok ⇒ println("ok")
-}
-```
-
---
-
-```scala
-foo(Status.Nok)
-// scala.MatchError: Nok (of class scala.Enumeration$Val)
-//   at .foo(<console>:14)
-//   ... 444 elided
-```
-
----
-
-## Enumerations ²
-
-Prefer : sealed trait hierarchies (ADTs)
-
-```scala
-sealed trait Status
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
-}
-```
-
---
-
-The compiler now knows we're not exhaustive:
-
-```scala
-def foo(w: Status): Unit = w match {
-  case Status.Ok ⇒ println("ok")
-}
-// <console>:14: warning: match may not be exhaustive.
-// It would fail on the following input: Nok
-//        def foo(w: Status): Unit = w match {
-//                                   ^
-// foo: (w: Status)Unit
-```
-
----
-
-## Algebraic Data Types
-
-Common implementation :
-
-```scala
-sealed trait Status
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
-}
-```
-
---
-
-Bad because : noisy type inference
-
-```scala
-List(Status.Ok, Status.Nok)
-// res0: List[Product with Serializable with Status] = List(Ok, Nok)
-```
-
----
-
-## Algebraic Data Types ²
-
-Prefer : having the root type extend `Product` and `Serializable`
-
-```scala
-sealed trait Status extends Product with Serializable
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
-}
-```
-
---
-
-The correct type is now inferred:
-
-```scala
-List(Status.Ok, Status.Nok)
-// res1: List[Status] = List(Ok, Nok)
-```
-
----
-
-## Sealed traits
-
-Common implementation :
-
-```scala
-sealed trait Foo
-
-class Bar extends Foo
-```
-
---
-
-Bad because : the seal might leak
-
-```scala
-// In another file, compiles without a problem
-class FooBar extends Bar
-```
-
---
-
-Prefer : `final` or `sealed` descendants
-
-```scala
-sealed trait Foo
-
-final class Bar extends Foo
-```
-
-This applies even if `Bar` is a case class.
-
-
-???
-
-Checked by:
-
-* scapegoat
-* wartremover
-
----
-
-## Case classes
-
-Common implementation :
-
-```scala
-case class Foo(i: Int)
-```
-
---
-
-Bad because : descendants don't behave as you'd expect
-
-```scala
-class Bar(i: Int, s: String) extends Foo(i)
-// defined class Bar
-
-new Bar(1, "foo") == new Bar(1, "bar")
-// res0: Boolean = true
-```
-
---
-
-Prefer : final case classes
-
-```scala
-final case class Foo(i: Int)
-```
-
----
-
-## Structural types
-
-Common implementation :
-
-```scala
-def add1(x: { def get: Int }): Int = 1 + x.get
-
-final case class Wrapper(i: Int) {
-  def get: Int = i
-}
-```
-
-```scala
-add1(Wrapper(1))
-// res1: Int = 2
-```
-
---
-
-Bad because :
-
-* runtime cost
-* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org)
-  and [scala native](https://github.com/scala-native/scala-native))
-
-???
-
-Reference: https://twitter.com/den_sh/status/854261433038761984
-
----
-
-## Structural types ²
-
-Prefer : type classes
-
-```scala
-trait HasGet[A] {
-  def get(a: A): Int
-}
-
-implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
-  def get(a: Wrapper) = a.i
-}
-
-def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
-```
-
-```scala
-add1(Wrapper(1))
-// res4: Int = 2
-```
-
----
-
-class: center, middle
-
-# Safety (type or otherwise)
-
-
----
-
-## Type annotation
-
-Common implementation :
-
-```scala
-def asOpt[A](a: A) = Some(a)
-```
-
---
-
-Bad because : the return type is not what you'd expect
-
-```scala
-def asOpt[A](a: A) = Some(a)
-// asOpt: [A](a: A)Some[A]
-```
-
---
-
-Prefer : explicitly type-annotated public methods
-
-```scala
-def asOpt[A](a: A): Option[A] = Some(a)
-// asOpt: [A](a: A)Option[A]
-```
-
----
-
-## String concatenation
-
-Common implementation :
-
-```scala
-1 + "2"
-// res0: String = 12
-```
-
---
-
-Bad because : `+` often does not behave coherently
-
-```scala
-List("foo") + "bar"
-// res1: String = List(foo)bar
-
-Set("foo") + "bar"
-// res2: scala.collection.immutable.Set[String] = Set(foo, bar)
-```
-
----
-
-## String concatenation ²
-
-Let's not even bring this abomination up:
-
-```scala
-List(1) + 2
-// <console>:13: error: type mismatch;
-//  found   : Int(2)
-//  required: String
-//        List(1) + 2
-//                  ^
-```
-
---
-
-Prefer :
-* string interpolation
-* compiler plugins that ban `any2stringadd`
-
----
-
-## Exceptions
-
-Common implementation :
-
-```scala
-def parseInt(str: String): Int = str.toInt
-def elementAt[A](value: Array[A], i: Int): A = value(i)
-```
-
---
-
-Bad because : where to begin...
-
-* basically a `GOTO` statement
-* unchecked (the compiler cannot enforce code validity)
-
---
-
-Prefer :
-
-* [`Option`](http://www.scala-lang.org/api/2.12.2/scala/Option.html) to convey the potential absence of a value
-* [`Either`](http://www.scala-lang.org/api/2.12.2/scala/util/Either.html) to convey a potentially failing computation
-* [`Try`](http://www.scala-lang.org/api/2.12.2/scala/util/Try.html), if you have to deal with code that throws
-
----
-
-## The `return` keyword
-
-"Common" implementation :
-
-```scala
-def add(n: Int, m: Int): Int = return n + m
-```
-
---
-
-Bad because :
-
-* basically a `GOTO` statement
-* it doesn't do what you think it does
-
---
-
-```scala
-def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
-// <console>:12: error: type mismatch;
-//  found   : Int
-//  required: List[Int]
-//        def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
-//                                                                ^
-```
-
-Doesn't seem to make sense, but let's change the type...
-
----
-
-## The `return` keyword ²
-
-```scala
-def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
-// <console>:12: error: type mismatch;
-//  found   : List[Nothing]
-//  required: Int
-//        def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
-//                                            ^
-```
-
-Fine, let's play along...
-
----
-
-## The `return` keyword ³
-
-```scala
-def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
-// <console>:12: error: type mismatch;
-//  found   : Int
-//  required: List[Nothing]
-//        def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
-//                                                                    ^
-```
-
---
-
-**ಠ_ಠ**
-
---
-
-Prefer : never using `return`.
-
-
-???
-
-Also: not referentially transparent
-
-See https://tpolecat.github.io/2014/05/09/return.html
-
----
-
-## Recursion
-
-Common implementation :
-
-```scala
-def sum(is: List[Int]): Int = is match {
-  case h :: t ⇒ h + sum(t)
-  case _      ⇒ 0
-}
-```
-
---
-
-Bad because : stack unsafe
-
-```scala
-sum(List.range(1, 30000))
-// java.lang.StackOverflowError
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-//   at .sum(<console>:13)
-```
-
----
-
-## Recursion ²
-
-Prefer : tail recursion
-
-```scala
-def sum(is: List[Int]): Int = {
-  def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ loop(t, acc + h)
-    case _      ⇒ acc
-  }
-  loop(is, 0)
-}
-```
-
---
-
-Tail recursion is stack-safe:
-
-```scala
-sum(List.range(1, 30000))
-// res1: Int = 449985000
-```
-
----
-
-## Tail recursion
-
-Common implementation :
-
-```scala
-class Foo {
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
-  }
+sealed abstract class User extends Product with Serializable
+
+object User {
+  final case class Grunt(id: Int) extends User
+  final case class Priviledged(id: Int, name: String) extends User
+  final case object Root extends User
 }
 ```
 
 ---
 
-## Tail recursion ²
+## Checking for `Root`
 
-Bad because : this is not actually tail recursive
-
-```scala
-class Foo {
-  @annotation.tailrec
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
-  }
-}
-// <console>:14: error: could not optimize @tailrec annotated method sum: it is neither private nor final so can be overridden
-//          def sum(cur: List[Int], acc: Int): Int = cur match {
-//              ^
-```
+Our `User` type makes it hard to check if a user is `root`.
 
 --
 
-Prefer : always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
-
----
-
-
-## Implicit conversions
-
-Common implementation :
+Pattern matching is the answer:
 
 ```scala
-implicit def str2int(str: String): Int = Integer.parseInt(str)
-```
-
---
-
-Bad because : we use types to prevent us from doing illegal operations
-
-```scala
-"foobar" / 2
-// java.lang.NumberFormatException: For input string: "foobar"
-//   at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
-//   at java.lang.Integer.parseInt(Integer.java:580)
-//   at java.lang.Integer.parseInt(Integer.java:615)
-//   at .str2int(<console>:12)
-//   ... 1020 elided
-```
-
----
-
-## Implicit conversions ²
-
-Prefer : explicit conversions
-
-```scala
-scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
-// res1: scala.util.Try[Int] = Failure(java.lang.NumberFormatException: For input string: "foobar")
-```
-
-Note: implicit conversions to enrich existing types (type class "syntax") are ok.
-
-
----
-
-## Implicit resolution
-
-Common implementation :
-
-```scala
-case class Config(port: Int)
-
-object a1 {
-  implicit val defaultConfig: Config = Config(8080)
-}
-
-def getPort(implicit c: Config): Int = c.port
-```
-
-```scala
-{
-  import a1._
-
-  getPort
-}
-// res2: Int = 8080
-```
-
----
-
-## Implicit resolution ²
-
-Bad because : identical names clash
-
-```scala
-object a2 {
-  implicit val defaultConfig: Int = 12345
+def isRoot(user: User): Boolean = user match {
+  case User.Root ⇒ true
+  case _         ⇒ false
 }
 ```
 
-```scala
-{
-  import a1._, a2._
+---
 
-  getPort
+## Greeting message
+
+We'd like to display user-specific greeting messages.
+
+--
+
+Pattern matches allow us to dig into data structures:
+
+```scala
+def greeting(user: User): String = user match {
+  case User.Root                  ⇒ "My Lord"
+  case User.Priviledged(id, name) ⇒ s"Señor $name"
+  case User.Grunt(id)             ⇒ "you there"
 }
-// <console>:19: error: could not find implicit value for parameter c: Config
-//          getPort
-//          ^
 ```
 
 ---
 
-## Implicit resolution ³
+## Greeting message ²
 
+In our previous example, we're not using `id`.
 
-Prefer :
-* very explicit class names to avoid naming conflicts
-* unfortunately, no foolproof method I know of
+--
+
+Any unused value can be "named" `_` instead:
+
+```scala
+def greeting(user: User): String = user match {
+  case User.Root                 ⇒ "My Lord"
+  case User.Priviledged(_, name) ⇒ s"Señor $name"
+  case User.Grunt(_)             ⇒ "you there"
+}
+```
+
+--
+
+This is how our _default_ case in `isRoot` worked.
 
 ---
 
-## Java to / from Scala collections
+## Looking for Bob
 
-Common implementation :
+Sales decided they simply _must_ have a custom greeting for anyone called _Bob_.
+
+--
+
+Pattern matching allows you to compare against values:
 
 ```scala
-import collection.JavaConversions._
-
-val it: Iterator[Int] = java.util.Arrays.asList(1, 2, 3).iterator()
+def greeting(user: User): String = user match {
+  case User.Root                  ⇒ "My Lord"
+  case User.Priviledged(_, "Bob") ⇒ "Good ol' Bob"
+  case User.Priviledged(_, name)  ⇒ s"Señor $name"
+  case User.Grunt(_)              ⇒ "you there"
+}
 ```
 
 --
 
-Bad because :
-
-* deprecated since 2.12.0
-* relies on implicit conversion
-
---
-
-Prefer : explicit conversion through [`JavaConverters`](http://www.scala-lang.org/api/2.12.2/scala/collection/JavaConverters$.html)
-
-```scala
-import collection.JavaConverters._
-// import collection.JavaConverters._
-
-val list = java.util.Arrays.asList(1, 2, 3).asScala
-// list: scala.collection.mutable.Buffer[Int] = Buffer(1, 2, 3)
-```
----
-
-class: center, middle
-
-# Collections
-
+Case statements are evaluated sequentially, order matters.
 
 ---
 
-## Checking for emptiness
+## Looking for XXX
 
-Common implementation :
+Checking whether a user is called Bob is nice.
+
+We're coders though. We like DRY code. Let's look for any name.
+
+--
 
 ```scala
-def foo[A](s: Seq[A]): Unit =
-  println(if(s.size == 0) "empty" else "non-empty")
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, name) ⇒ true
+  case _                         ⇒ false
+}
 ```
 
 --
 
-Bad because : not all collections are finite
+Unfortunately, this does not work:
 
 ```scala
-val haha: Seq[Int] = Stream.from(1)
+hasName(User.Priviledged(1, "Xander"), "Vin")
+// res1: Boolean = true
+```
 
-// foo(haha) ?
+---
+
+## Looking for XXX ²
+
+What we did was accept any `User.Priviledged` with a name - anyone.
+
+--
+
+The correct syntax for this is unpleasant:
+
+```scala
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, `name`) ⇒ true
+  case _                           ⇒ false
+}
 ```
 
 --
 
-Prefer : `isEmpty` or `nonEmpty`
+But it works:
 
 ```scala
-Stream.from(1).isEmpty
+hasName(User.Priviledged(1, "Xander"), "Vin")
 // res2: Boolean = false
+
+hasName(User.Priviledged(1, "Xander"), "Xander")
+// res3: Boolean = true
 ```
 
 ---
 
-## Array comparison
+## Looking for XXX ³
 
-Common implementation :
+_Guards_ are a more pleasant (and powerful) alternative:
 
 ```scala
-Array(1) == Array(1)
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, n) if n == name ⇒ true
+  case _                                   ⇒ false
+}
+```
+
+---
+
+## Checking for permissions
+
+We want to know if a given user can perform an action.
+
+--
+
+Let's pretend that `root` and any priviledged user can perform any action.
+
+--
+
+```scala
+def hasPermissions(user: User): Boolean = user match {
+  case User.Priviledged(_, _) ⇒ true
+  case User.Root              ⇒ true
+  case _                      ⇒ false
+}
+```
+
+---
+
+## Checking for permissions ²
+
+That `(_, _)` is unpleasant - we can replace it with a type check:
+
+```scala
+def hasPermissions(user: User): Boolean = user match {
+  case _: User.Priviledged ⇒ true
+  case User.Root           ⇒ true
+  case _                   ⇒ false
+}
 ```
 
 --
 
-Bad because : it does not work
+Note that this is acceptable because `User` is an ADT. Do not do the same thing on values of type `Any`.
+
+---
+
+## Checking for permissions ³
+
+Our first two patterns have the same outcome. We can group them using `|`:
+
 
 ```scala
-Array(1) == Array(1)
-// res1: Boolean = false
+def hasPermissions(user: User): Boolean = user match {
+  case _: User.Priviledged | User.Root ⇒ true
+  case _                               ⇒ false
+}
+```
+
+---
+
+## Checking for permissions ⁴
+
+`hasPermissions` requires having a `User`. What if our system supports anonymous users?
+
+--
+
+Patterns can be applied inside patterns:
+
+```scala
+def hasPermissions(user: Option[User]): Boolean = user match {
+  case Some(_: User.Priviledged | User.Root) ⇒ true
+  case _                                     ⇒ false
+}
+```
+
+---
+
+## Multiple names
+
+Sales have decided that users should be allowed to have more than one name.
+
+--
+
+Let's amend our ADT:
+
+```scala
+sealed abstract class User extends Product with Serializable
+
+object User {
+  final case class Grunt(id: Int) extends User
+  final case object Root extends User
+  final case class Priviledged(id: Int,
+    names: List[String]) extends User
+}
 ```
 
 --
 
-Prefer : using `sameElements`
-
-```scala
-Array(1).sameElements(Array(1))
-// res2: Boolean = true
-```
-
-???
-Checked by:
-
-* scapegoat
-
+But, of course, we still want our Bob promotion.
 
 ---
 
-## `Traversable` safety: `head`
+## Looking for Bob, improved
 
-Common implementation :
-
-```scala
-Seq(1, 2, 3).head
-// res0: Int = 1
-```
+We want to identify users whose first name is Bob.
 
 --
 
-Bad because : some collections are empty
+Patterns can match on sequences, and use `_*` to signify _0 or more values_.
 
 ```scala
-Seq.empty[Int].head
-// java.util.NoSuchElementException: head of empty list
-//   at scala.collection.immutable.Nil$.head(List.scala:417)
-//   at scala.collection.immutable.Nil$.head(List.scala:414)
-//   ... 1022 elided
+def isBob(user: Option[User]): Boolean = user match {
+  case Some(User.Priviledged(_, List("Bob", _*))) ⇒ true
+  case _                                          ⇒ false
+}
 ```
 
 ---
 
-## `Traversable` safety: `head` ²
+## Looking for Bob, improved ²
 
-Prefer : `headOption`
+Patterns support _infix operators_, and `List` is a good example of that:
 
 ```scala
-Seq(1, 2, 3).headOption
-// res2: Option[Int] = Some(1)
-
-Seq.empty[Int].headOption
-// res3: Option[Int] = None
+def isBob(user: Option[User]): Boolean = user match {
+  case Some(User.Priviledged(_, "Bob" :: _)) ⇒ true
+  case _                                     ⇒ false
+}
 ```
 
 ---
 
-## `Traversable` safety: `last`
+## Finding Bob
 
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).last
-// res0: Int = 3
-```
+For reasons unclear (I'm running out of ideas), sales has decided that only Bob is allowed to log in.
 
 --
 
-Bad because : some collections are empty
+They're likely to realise it's a bad idea. Let's implement that in a way that is easy to rollback.
 
-```scala
-Seq.empty[Int].last
-// java.util.NoSuchElementException
-//   at scala.collection.LinearSeqOptimized.last(LinearSeqOptimized.scala:146)
-//   at scala.collection.LinearSeqOptimized.last$(LinearSeqOptimized.scala:145)
-//   at scala.collection.immutable.List.last(List.scala:86)
-//   ... 1021 elided
-```
+We want a filter that:
 
----
-
-## `Traversable` safety: `last` ²
-
-
-Prefer : `lastOption`
-
-```scala
-Seq(1, 2, 3).lastOption
-// res2: Option[Int] = Some(3)
-
-Seq.empty[Int].lastOption
-// res3: Option[Int] = None
-```
----
-
-## `Traversable` safety: `tail`
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).tail
-// res0: Seq[Int] = List(2, 3)
-```
+* leaves any Bob alone
+* turns any non-Bob in an unlogged user.
 
 --
 
-Bad because : some collections are empty
-
 ```scala
-Seq.empty[Int].tail
-// java.lang.UnsupportedOperationException: tail of empty list
-//   at scala.collection.immutable.Nil$.tail(List.scala:419)
-//   at scala.collection.immutable.Nil$.tail(List.scala:414)
-//   ... 1022 elided
+def filterNonBob(user: Option[User]): Option[User] = user match {
+  case Some(User.Priviledged(id, "Bob" :: Nil)) ⇒
+    Some(User.Priviledged(id, List("Bob")))
+
+  case _ ⇒ None
+}
 ```
 
 ---
 
-## `Traversable` safety: `tail` ²
+## Finding Bob ²
 
-Prefer : `drop(1)`
-
-```scala
-Seq(1, 2, 3).drop(1)
-// res2: Seq[Int] = List(2, 3)
-
-Seq.empty[Int].drop(1)
-// res3: Seq[Int] = List()
-```
-
----
-
-## `Traversable` safety: `init`
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).init
-// res0: Seq[Int] = List(1, 2)
-```
+That is nasty, though.
 
 --
 
-Bad because : some collections are empty
+Patterns allow us to assign a match to a value though `@`:
 
 ```scala
-Seq.empty[Int].init
-// java.lang.UnsupportedOperationException: empty.init
-//   at scala.collection.TraversableLike.init(TraversableLike.scala:451)
-//   at scala.collection.TraversableLike.init$(TraversableLike.scala:450)
-//   at scala.collection.AbstractTraversable.init(Traversable.scala:104)
-//   ... 1021 elided
-```
-
----
-
-## `Traversable` safety: `init` ²
-
-
-Prefer : `dropRight(1)`
-
-```scala
-Seq(1, 2, 3).dropRight(1)
-// res2: Seq[Int] = List(1, 2)
-
-Seq.empty[Int].dropRight(1)
-// res3: Seq[Int] = List()
-```
-
----
-
-## `Traversable` safety: `reduce`
-
-
-Common implementation :
-
-```scala
-Seq(1, 2, 3).reduce(_ + _)
-// res0: Int = 6
-```
-
---
-
-Bad because : some collections are empty
-
-```scala
-Seq.empty[Int].reduce(_ + _)
-// java.lang.UnsupportedOperationException: empty.reduceLeft
-//   at scala.collection.LinearSeqOptimized.reduceLeft(LinearSeqOptimized.scala:135)
-//   at scala.collection.LinearSeqOptimized.reduceLeft$(LinearSeqOptimized.scala:134)
-//   at scala.collection.immutable.List.reduceLeft(List.scala:86)
-//   at scala.collection.TraversableOnce.reduce(TraversableOnce.scala:208)
-//   at scala.collection.TraversableOnce.reduce$(TraversableOnce.scala:208)
-//   at scala.collection.AbstractTraversable.reduce(Traversable.scala:104)
-//   ... 1018 elided
-```
-
----
-
-## `Traversable` safety: `reduce` ²
-
-
-Prefer :
-
-* `reduceOption`
-
-```scala
-Seq(1, 2, 3).reduceOption(_ + _)
-// res2: Option[Int] = Some(6)
-
-Seq.empty[Int].reduceOption(_ + _)
-// res3: Option[Int] = None
-```
-
-* `fold`
-
-```scala
-Seq(1, 2, 3).fold(0)(_ + _)
-// res4: Int = 6
-
-Seq.empty[Int].fold(0)(_ + _)
-// res5: Int = 0
+def filterNonBob(user: Option[User]): Option[User] = user match {
+  case a @ Some(User.Priviledged(_, "Bob" :: Nil)) ⇒ a
+  case _                                           ⇒ None
+}
 ```
 
 ---
 
 class: center, middle
 
-# Conclusions
+# How it works under the hood
+
+---
+
+## Simple extractors
+
+An extractor is defined through the `unapply` method in an object.
+
+The most common case is for it to return an `Option`.
+
+
+```scala
+object FirstName {
+  def unapply(user: User.Priviledged): Option[String] =
+    user.names.headOption
+}
+```
+
+--
+
+We can now use `FirstName` in a pattern:
+
+```scala
+User.Priviledged(0, List("Bob")) match {
+  case FirstName(name) ⇒ s"has first name $name"
+  case _               ⇒ "no first name"
+}
+// res5: String = has first name Bob
+```
+
+---
+
+## Infix extractors
+
+If `unapply` returns a `Tuple2`, you can use infix notation.
+
+```scala
+object FollowedBy {
+  def unapply(user: User.Priviledged)
+      : Option[(String, List[String])] =
+    user.names.headOption.map(n ⇒ (n, user.names.drop(1)))
+}
+```
+
+--
+
+We can now use `FollowedBy` in infix notation:
+
+```scala
+User.Priviledged(0, List("Billy", "Bob")) match {
+  case first FollowedBy _ ⇒ s"has first name $first"
+  case _                  ⇒ "no first name"
+}
+// res6: String = has first name Billy
+```
+
+---
+
+## Sequence extractors
+
+If `unapplySeq` is defined, you can use variadic syntax.
+
+```scala
+object FancyNames {
+  def unapplySeq(user: User.Priviledged)
+      : Option[(Int, Seq[String])] =
+    Some((user.id, user.names))
+}
+```
+
+--
+
+We can now match on parts of the list of names:
+
+```scala
+User.Priviledged(0, List("Billy", "Bob", "Jim")) match {
+  case FancyNames(_, "Billy", "Bob", _*) ⇒ "billy bob something"
+  case _                                 ⇒ "who?"
+}
+// res7: String = billy bob something
+```
+
+---
+
+## Predicate extractors
+
+If `unapply` returns a `Boolean`, it can be used as a predicate.
+
+```scala
+object HasPermission {
+  def unapply(user: User): Boolean = user match {
+    case _: User.Priviledged | User.Root ⇒ true
+    case _                               ⇒ false
+  }
+}
+```
+
+--
+
+We can now check whether user has permissions:
+
+```scala
+User.Root match {
+  case HasPermission() ⇒ "with permissions!"
+  case _               ⇒ "without permissions!"
+}
+// res8: String = with permissions!
+```
+
+---
+
+class: center, middle
+
+# Other uses of pattern matching
+
+---
+
+## Variable assignment
+
+Let's create a way to query the current user:
+
+```scala
+def getCurrentUser: User =
+  User.Priviledged(1, List("Billy", "Bob"))
+```
+
+--
+
+We can use extractors when declaring variables:
+
+```scala
+val User.Priviledged(id, name :: _) = getCurrentUser
+// id: Int = 1
+// name: String = Billy
+```
+
+---
+
+## Variable assignment ²
+
+Be very careful though, this can fail at runtime if the extractor does not match:
+
+```scala
+val User.Grunt(id) = getCurrentUser
+// scala.MatchError: Priviledged(1,List(Billy, Bob)) (of class User$Priviledged)
+//   ... 1024 elided
+```
+
+---
+
+## Exception handling
+
+In Scala, exception handling is a pattern match:
+
+```scala
+try {
+  throw new java.io.IOException()
+} catch {
+  case e: java.io.IOException ⇒ s"IO exception"
+  case _: Throwable           ⇒ "not an IO exception"
+}
+// res9: String = IO exception
+```
+
+---
+
+## For-comprehensions
+
+Given a list of users:
+
+```scala
+val users = List(User.Root, User.Priviledged(1, List("Bob")))
+```
+
+--
+
+We can use patterns in for-comprehension to both filter and extract data:
+
+```scala
+for {
+  User.Priviledged(id, "Bob" :: _) <- users
+} yield id
+// res10: List[Int] = List(1)
+```
 
 
 ---
 
-## Enforcing best practices
+## Anonymous functions
 
-* Code reviews
-* Automated tools
-  * [scapegoat](https://github.com/sksamuel/scapegoat)
-  * [wartremover](http://www.wartremover.org)
-  * [scala linter](https://github.com/HairyFotr/linter)
-  * [abide](https://github.com/scala/scala-abide)
-  * [scalastyle](http://www.scalastyle.org)
-  * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2014/04/11/scalac-flags.html))
----
+Pattern matches can be used as partial functions:
 
-## More good and bad practices
+```scala
+val f: PartialFunction[User, Int] = _ match {
+  case User.Priviledged(id, _) ⇒ id
+}
+```
 
-These were my favourite examples. I'm sure there are others.
+--
 
-I'd be happy to take suggestions for additions to this list, either now or after the talk!
+And since partial functions are functions, we can use patterns as anonymous functions:
+
+```scala
+users.collect {
+  case User.Priviledged(id, "Bob" :: _) => id
+}
+// res11: List[Int] = List(1)
+```
 
 ---
 
 
 ## More information
 
+TODO
 Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
 
 Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
@@ -2129,6 +585,7 @@ Get in touch with [`Besedo`](https://twitter.com/besedo_official), we're always 
 
 Slides backed by [remark.js](https://remarkjs.com/) and [Rob Norris](https://twitter.com/tpolecat)' amazing
 [tut](https://github.com/tpolecat/tut)
+
 
 ---
 
