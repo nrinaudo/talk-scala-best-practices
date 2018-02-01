@@ -7,4 +7,6 @@ way.
 The purpose of this talk is to try and save some pain by puting the worst offenders in the spotlight and, hopefully, starting conversations
 around them.
 
-Slides can be consulted directly on the [companion site](https://nrinaudo.github.io/scala-best-practices/#1)
+Slides can be consulted directly on the [companion site](https://nrinaudo.github.io/talk-scala-best-practices/#1).
+
+There's also a [recording](https://www.youtube.com/watch?v=ByyPqBoV3Vw) of me giving the talk (French only, I'm afraid).
