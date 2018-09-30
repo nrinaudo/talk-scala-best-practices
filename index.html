@@ -492,6 +492,7 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 Bad because : where to begin...
 
+* breaks referential transparency
 * basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
 
@@ -517,6 +518,7 @@ def add(n: Int, m: Int): Int = return n + m
 
 Bad because :
 
+* breaks referential transparency
 * basically a `GOTO` statement
 * it doesn't do what you think it does
 
@@ -563,7 +565,7 @@ def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
 
 --
 
-**ಠ_ಠ**
+**(╯°□°）╯︵ ┻━┻**
 
 --
 
@@ -2108,7 +2110,8 @@ class: center, middle
   * [scala linter](https://github.com/HairyFotr/linter)
   * [abide](https://github.com/scala/scala-abide)
   * [scalastyle](http://www.scalastyle.org)
-  * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2014/04/11/scalac-flags.html))
+  * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2017/04/25/scalac-flags.html))
+  * [scalafix](https://github.com/scalacenter/scalafix)
 ---
 
 ## More good and bad practices
