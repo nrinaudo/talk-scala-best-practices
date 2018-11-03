@@ -476,6 +476,60 @@ Prefer :
 
 ---
 
+## Errors
+
+Common implementation :
+
+```tut:silent:reset
+sealed trait DbError extends Product with Serializable
+
+object DbError {
+  case object InvalidSql extends DbError
+  case object ConnectionLost extends DbError
+}
+```
+
+--
+
+Bad because :
+* existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
+* you sometimes need to merge multiple error types and ADTs don't compose
+
+---
+
+## Errors ²
+
+Prefer : extending `Exception` (but no throwing!)
+
+```tut:silent
+sealed trait DbError extends Exception with
+  Product with Serializable
+
+object DbError {
+  case object InvalidSql extends DbError
+  case object ConnectionLost extends DbError
+}
+```
+
+--
+
+We can now work with "clean" types:
+
+```tut:silent
+// Turn an Either into a Try when needed
+Left(DbError.InvalidSql).toTry
+
+// Fail a Future with a useful error
+scala.concurrent.Future.failed(DbError.InvalidSql)
+```
+
+???
+
+I'm not a big fan of using `Exception` as a universal super type for errors, which is why I don't insist on it in
+writing. Maybe worth bringing up, since Martin Odersky told me he though that was a desirable practice.
+
+---
+
 ## The `return` keyword
 
 "Common" implementation :
