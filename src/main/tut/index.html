@@ -419,7 +419,9 @@ Common implementation :
 
 --
 
-Bad because : `+` often does not behave coherently
+Bad because :
+* deprecated since 2.13
+* `+` often does not behave coherently
 
 ```tut:book
 List("foo") + "bar"
@@ -430,7 +432,7 @@ Set("foo") + "bar"
 
 ## String concatenation ²
 
-Let's not even bring this abomination up:
+Let's not even bring this abomination up (not fixed in 2.13):
 
 ```tut:book:fail
 List(1) + 2
@@ -439,8 +441,14 @@ List(1) + 2
 --
 
 Prefer :
+
+* explicit calls to `toString`
 * string interpolation
-* compiler plugins that ban `any2stringadd`
+
+```tut:book
+val foo = "FOO"
+s"${foo}bar"
+```
 
 ---
 
