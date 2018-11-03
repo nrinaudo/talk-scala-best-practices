@@ -526,7 +526,9 @@ def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
 
 --
 
-Prefer : never using `return`.
+Prefer :
+* never using `return`
+* dotty apparently fixes the more insane corner cases
 
 
 ???
@@ -534,6 +536,8 @@ Prefer : never using `return`.
 Also: not referentially transparent
 
 See https://tpolecat.github.io/2014/05/09/return.html
+
+Dotty apparently either behave "properly" or refuses to compile when it finds a `return` in a lambda.
 
 ---
 
