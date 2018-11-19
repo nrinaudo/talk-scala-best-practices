@@ -320,6 +320,81 @@ final case class Foo(i: Int)
 
 ---
 
+## Custom extractors
+
+Common implementation :
+
+```tut:silent:reset
+sealed trait Error extends Product with Serializable
+
+object Error {
+  final case class Unknown(msg: String) extends Error
+
+  sealed abstract class Known(val code: Int) extends Error
+  object Known {
+    def unapply(known: Known): Option[Int] = Some(known.code)
+
+    case object NotFound extends Known(404)
+    case object BadRequest extends Known(400)
+  }
+}
+```
+
+---
+
+## Custom extractors ²
+
+Bad because : this compiles without a non-exhaustivity warning
+
+```tut:silent
+def foo(error: Error): Int = error match {
+  case Error.Known(code) => code
+}
+```
+
+---
+
+## Custom extractors ³
+
+Prefer: returning type `Some` for exhaustive extractors
+
+```tut:silent:reset
+sealed trait Error extends Product with Serializable
+
+object Error {
+  final case class Unknown(msg: String) extends Error
+
+  sealed abstract class Known(val code: Int) extends Error
+  object Known {
+    // The only change is here
+    def unapply(known: Known): Some[Int] = Some(known.code)
+
+    case object NotFound extends Known(404)
+    case object BadRequest extends Known(400)
+  }
+}
+```
+
+---
+
+## Custom extractors ⁴
+
+We're now getting the expected warning:
+
+```tut:book
+def foo(error: Error): Int = error match {
+  case Error.Known(code) => code
+}
+```
+
+--
+
+Scala warns when it can find proof of non-exhaustivity, not when it can't find proof of exhaustivity.
+
+Where is your god now?
+
+---
+
 ## Structural types
 
 Common implementation :
