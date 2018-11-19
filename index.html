@@ -304,9 +304,6 @@ sealed trait Foo
 final class Bar extends Foo
 ```
 
-This applies even if `Bar` is a case class.
-
-
 ???
 
 Checked by:
@@ -343,6 +340,86 @@ Prefer : final case classes
 ```scala
 final case class Foo(i: Int)
 ```
+
+---
+
+## Custom extractors
+
+Common implementation :
+
+```scala
+sealed trait Error extends Product with Serializable
+
+object Error {
+  final case class Unknown(msg: String) extends Error
+
+  sealed abstract class Known(val code: Int) extends Error
+  object Known {
+    def unapply(known: Known): Option[Int] = Some(known.code)
+
+    case object NotFound extends Known(404)
+    case object BadRequest extends Known(400)
+  }
+}
+```
+
+---
+
+## Custom extractors ²
+
+Bad because : this compiles without a non-exhaustivity warning
+
+```scala
+def foo(error: Error): Int = error match {
+  case Error.Known(code) => code
+}
+```
+
+---
+
+## Custom extractors ³
+
+Prefer: returning type `Some` for exhaustive extractors
+
+```scala
+sealed trait Error extends Product with Serializable
+
+object Error {
+  final case class Unknown(msg: String) extends Error
+
+  sealed abstract class Known(val code: Int) extends Error
+  object Known {
+    // The only change is here
+    def unapply(known: Known): Some[Int] = Some(known.code)
+
+    case object NotFound extends Known(404)
+    case object BadRequest extends Known(400)
+  }
+}
+```
+
+---
+
+## Custom extractors ⁴
+
+We're now getting the expected warning:
+
+```scala
+def foo(error: Error): Int = error match {
+  case Error.Known(code) => code
+}
+// <console>:14: warning: match may not be exhaustive.
+// It would fail on the following input: Unknown(_)
+//        def foo(error: Error): Int = error match {
+//                                     ^
+// foo: (error: Error)Int
+```
+
+--
+
+Scala warns when it can find proof of non-exhaustivity, not when it can't find proof of exhaustivity.
+
+Where is your god now?
 
 ---
 
@@ -447,7 +524,9 @@ Common implementation :
 
 --
 
-Bad because : `+` often does not behave coherently
+Bad because :
+* deprecated since 2.13
+* `+` often does not behave coherently
 
 ```scala
 List("foo") + "bar"
@@ -461,7 +540,7 @@ Set("foo") + "bar"
 
 ## String concatenation ²
 
-Let's not even bring this abomination up:
+Let's not even bring this abomination up (not fixed in 2.13):
 
 ```scala
 List(1) + 2
@@ -475,8 +554,17 @@ List(1) + 2
 --
 
 Prefer :
+
+* explicit calls to `toString`
 * string interpolation
-* compiler plugins that ban `any2stringadd`
+
+```scala
+val foo = "FOO"
+// foo: String = FOO
+
+s"${foo}bar"
+// res4: String = FOObar
+```
 
 ---
 
@@ -504,6 +592,60 @@ Prefer :
 * [`Option`](http://www.scala-lang.org/api/2.12.2/scala/Option.html) to convey the potential absence of a value
 * [`Either`](http://www.scala-lang.org/api/2.12.2/scala/util/Either.html) to convey a potentially failing computation
 * [`Try`](http://www.scala-lang.org/api/2.12.2/scala/util/Try.html), if you have to deal with code that throws
+
+---
+
+## Errors
+
+Common implementation :
+
+```scala
+sealed trait DbError extends Product with Serializable
+
+object DbError {
+  case object InvalidSql extends DbError
+  case object ConnectionLost extends DbError
+}
+```
+
+--
+
+Bad because :
+* existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
+* you sometimes need to merge multiple error types and ADTs don't compose
+
+---
+
+## Errors ²
+
+Prefer : extending `Exception` (but no throwing!)
+
+```scala
+sealed trait DbError extends Exception with
+  Product with Serializable
+
+object DbError {
+  case object InvalidSql extends DbError
+  case object ConnectionLost extends DbError
+}
+```
+
+--
+
+We can now work with "clean" types:
+
+```scala
+// Turn an Either into a Try when needed
+Left(DbError.InvalidSql).toTry
+
+// Fail a Future with a useful error
+scala.concurrent.Future.failed(DbError.InvalidSql)
+```
+
+???
+
+I'm not a big fan of using `Exception` as a universal super type for errors, which is why I don't insist on it in
+writing. Maybe worth bringing up, since Martin Odersky told me he though that was a desirable practice.
 
 ---
 
@@ -569,7 +711,9 @@ def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
 
 --
 
-Prefer : never using `return`.
+Prefer :
+* never using `return`
+* dotty apparently fixes the more insane corner cases
 
 
 ???
@@ -577,6 +721,8 @@ Prefer : never using `return`.
 Also: not referentially transparent
 
 See https://tpolecat.github.io/2014/05/09/return.html
+
+Dotty apparently either behave "properly" or refuses to compile when it finds a `return` in a lambda.
 
 ---
 
@@ -1787,6 +1933,10 @@ Prefer :
 * very explicit names, including types
 * unfortunately, no foolproof method I know of
 * dotty brings hope!
+
+???
+
+I've been told this was either fixed or improved with dotty, but can't find a trace of it online.
 
 ---
 
