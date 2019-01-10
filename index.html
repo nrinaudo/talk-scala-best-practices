@@ -661,6 +661,7 @@ def add(n: Int, m: Int): Int = return n + m
 
 Bad because :
 
+* breaks referential transparency
 * basically a `GOTO` statement
 * it doesn't do what you think it does
 
@@ -1937,43 +1938,6 @@ Prefer :
 ???
 
 I've been told this was either fixed or improved with dotty, but can't find a trace of it online.
-
----
-
-## Java to / from Scala collections
-
-Common implementation :
-
-```scala
-import collection.JavaConversions._
-
-val it: Iterator[Int] = java.util.Arrays.asList(1, 2, 3).iterator()
-```
-
---
-
-Bad because :
-
-* deprecated since 2.12.0
-* relies on implicit conversion
-
---
-
-Prefer : explicit conversion through [`JavaConverters`](http://www.scala-lang.org/api/2.12.2/scala/collection/JavaConverters$.html)
-
-```scala
-import collection.JavaConverters._
-// import collection.JavaConverters._
-
-val list = java.util.Arrays.asList(1, 2, 3).asScala
-// list: scala.collection.mutable.Buffer[Int] = Buffer(1, 2, 3)
-```
----
-
-class: center, middle
-
-# Collections
-
 
 ---
 
