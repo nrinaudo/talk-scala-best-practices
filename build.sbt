@@ -12,4 +12,4 @@ includeFilter in SitePlugin.autoImport.makeSite :=
     "*.yml" | "*.md" | "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.eot" | "*.svg" | "*.ttf" |
     "*.woff" | "*.woff2" | "*.otf"
 
-git.remoteRepo := "git@github.com:nrinaudo/scala-best-practices.git"
+git.remoteRepo := "git@github.com:nrinaudo/talk-scala-best-practices.git"
