@@ -9,4 +9,8 @@ around them.
 
 Slides can be consulted directly on the [companion site](https://nrinaudo.github.io/talk-scala-best-practices/#1).
 
-There's also a [recording](https://www.youtube.com/watch?v=ByyPqBoV3Vw) of me giving the talk (French only, I'm afraid).
+Fleshed out articles on each of these rules can be consulted [here](https://nrinaudo.github.io/scala-best-practices/).
+
+Finally, you can view recordings of this talk:
+- at the [Paris Scala User Group](https://www.youtube.com/watch?v=ByyPqBoV3Vw) (FR).
+- at [scala.io](https://www.youtube.com/watch?v=lvlnH-uEjZA) (FR).
