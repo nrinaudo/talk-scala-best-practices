@@ -293,18 +293,8 @@ final case class Foo(i: Int)
 .section[Common implementation]
 
 ```tut:silent:reset
-sealed trait Error extends Product with Serializable
-
-object Error {
-  final case class Unknown(msg: String) extends Error
-
-  sealed abstract class Known(val code: Int) extends Error
-  object Known {
-    def unapply(known: Known): Option[Int] = Some(known.code)
-
-    case object NotFound extends Known(404)
-    case object BadRequest extends Known(400)
-  }
+object ExtractSome {
+  def unapply[A](s: Some[A]): Option[A] = s
 }
 ```
 
@@ -315,8 +305,8 @@ object Error {
 .section[Bad because] this compiles without a non-exhaustivity warning
 
 ```tut:silent
-def foo(error: Error): Int = error match {
-  case Error.Known(code) => code
+def foo[A](o: Option[A]): A = o match {
+  case ExtractSome(a) => a
 }
 ```
 
@@ -324,22 +314,11 @@ def foo(error: Error): Int = error match {
 
 ## Custom extractors .super[3]
 
-Prefer: returning type `Some` for exhaustive extractors
+.section[Prefer] returning type `Some` for exhaustive extractors
 
 ```tut:silent:reset
-sealed trait Error extends Product with Serializable
-
-object Error {
-  final case class Unknown(msg: String) extends Error
-
-  sealed abstract class Known(val code: Int) extends Error
-  object Known {
-    // The only change is here
-    def unapply(known: Known): Some[Int] = Some(known.code)
-
-    case object NotFound extends Known(404)
-    case object BadRequest extends Known(400)
-  }
+object ExtractSome {
+  def unapply[A](s: Some[A]): Some[A] = s
 }
 ```
 
@@ -350,8 +329,8 @@ object Error {
 We're now getting the expected warning:
 
 ```tut:book
-def foo(error: Error): Int = error match {
-  case Error.Known(code) => code
+def foo[A](o: Option[A]): A = o match {
+  case ExtractSome(a) => a
 }
 ```
 
