@@ -1,12 +1,6 @@
-@font-face {
-    font-family: 'Source Code Pro';
-    src: url('SourceCodePro-Regular.otf.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-}
-
 body {
-    font-family:    "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* I like the way https://plfa.github.io/ looks, so I basically stole this magical incantation. */
+    font:           400 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
     margin:         0;
 	padding:        0;
 	border:         0;
@@ -14,17 +8,17 @@ body {
 }
 
 .remark-inline-code, .remark-code {
-    font-family: "Source Code Pro";
+    font-family: 'Bitstream Vera Sans Mono','Courier', monospace;
 }
 
 .remark-code {
     border-radius: 5px;
-    border: 1px solid #dfdedc;
-    white-space: pre-wrap;       /* CSS 3 */
-    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-    white-space: -pre-wrap;      /* Opera 4-6 */
-    white-space: -o-pre-wrap;    /* Opera 7 */
-    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+    border:        1px solid #dfdedc;
+    white-space:   pre-wrap;       /* CSS 3 */
+    white-space:   -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space:   -pre-wrap;      /* Opera 4-6 */
+    white-space:   -o-pre-wrap;    /* Opera 7 */
+    word-wrap:     break-word;       /* Internet Explorer 5.5+ */
 }
 
 .remark-slide-content, .remark-slide-container {
@@ -35,8 +29,21 @@ body {
     box-shadow: none;
 }
 
-h1, h2, h3 {
+h1, h2, h3, .section {
     color: #2980b9;
+}
+
+.super {
+    vertical-align: super;
+    font-size:      .5em;
+}
+
+.section {
+    font-weight: bold;
+}
+
+.section::after {
+    content: ":";
 }
 
 h2, h3 {
@@ -44,21 +51,26 @@ h2, h3 {
 }
 
 a {
-    color: #2980b9;
+    color:           #2980b9;
     text-decoration: none;
 }
 
 blockquote {
-  background: #f9f9f9;
-  border-left: 10px solid #dfdedc;
-  margin: 1.5em 10px;
-  padding: 0.5em 10px;
-  quotes: "\201C""\201D""\2018""\2019";
-  color: #5f5e5c;
-  border-top-right-radius: 5px;
+  background:                 #f9f9f9;
+  border-left:                10px solid #dfdedc;
+  margin:                     1.5em 10px;
+  padding:                    0.5em 10px;
+  quotes:                     "\201C""\201D""\2018""\2019";
+  color:                      #5f5e5c;
+  border-top-right-radius:    5px;
   border-bottom-right-radius: 5px;
 }
 
 blockquote p {
   display: inline;
+}
+
+/* Comments tend to be huge - stack traces and compiler errors. This makes them more readable. */
+.hljs-comment {
+    font-size: .85em;
 }
