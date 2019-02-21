@@ -1,3 +1,5 @@
+@import './fira/fira.css';
+
 body {
     /* I like the way https://plfa.github.io/ looks, so I basically stole this magical incantation. */
     font:           400 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
@@ -8,7 +10,7 @@ body {
 }
 
 .remark-inline-code, .remark-code {
-    font-family: 'Bitstream Vera Sans Mono','Courier', monospace;
+    font-family: "Fira Mono";
 }
 
 .remark-code {
