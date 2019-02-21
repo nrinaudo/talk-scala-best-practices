@@ -1,11 +1,10 @@
+enablePlugins(TutPlugin, GhpagesPlugin)
+
 organization := "com.nrinaudo"
-scalaVersion := "2.12.1"
-tutSettings
+scalaVersion := "2.12.8"
 
 val tutDirName = settingKey[String]("tut output directory")
 tutDirName := "./"
-
-enablePlugins(GhpagesPlugin)
 
 addMappingsToSiteDir(tut, tutDirName)
 includeFilter in SitePlugin.autoImport.makeSite :=
@@ -13,3 +12,9 @@ includeFilter in SitePlugin.autoImport.makeSite :=
     "*.woff" | "*.woff2" | "*.otf"
 
 git.remoteRepo := "git@github.com:nrinaudo/talk-scala-best-practices.git"
+
+libraryDependencies ++= Seq(
+  "com.chuusai"                %% "shapeless"     % "2.3.3",
+  "com.github.julien-truffaut" %% "monocle-core"  % "1.5.0",
+  "com.github.julien-truffaut" %% "monocle-macro" % "1.5.0"
+)

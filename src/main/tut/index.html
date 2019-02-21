@@ -33,55 +33,53 @@ class: center, middle
 
 ## Checking for oddness
 
-Common implementation :
+.section[Common implementation]
 
-```tut:book
+```tut:silent
 3 % 2 == 1
 ```
 
 --
 
-Bad because : fails on negative numbers
+.section[Bad because] fails on negative numbers
 
 ```tut:book
 -3 % 2 == 1
 ```
 
---
+---
 
-Prefer :
+## Checking for oddness .super[2]
+
+.section[Prefer]
 
 ```tut:book
 -3 % 2 != 0
 ```
 
-???
-
-Checked by:
-
-* scapegoat
-
 ---
 
 ## Checking for `NaN`
 
-Common implementation :
+.section[Common implementation]
 
-```tut:book:reset
+```tut:silent:reset
 2.0 == Double.NaN
 ```
 
 --
 
-Bad because : it does not work
+.section[Bad because] it does not work
 
 ```tut:book
 Double.NaN == Double.NaN
 ```
 
---
+---
 
-Prefer : calling `isNaN`
+## Checking for `NaN` .super[2]
+
+.section[Prefer] calling `isNaN`
 
 ```tut:book
 Double.NaN.isNaN
@@ -91,44 +89,13 @@ Double.NaN.isNaN
 
 ???
 
-Checked by:
-
-* linter
-* scapegoat
-
 Normal behaviour according to IEEE 754
-
----
-
-## Float in ranges
-
-Common implementation :
-
-```tut:silent:reset
-0.1 to 0.9 by 0.1
-```
-
---
-
-Bad because : floating points don't add nicely
-
-```tut:book
-(0.1 to 0.9 by 0.1).toList
-```
-
---
-
-Prefer : integral types in ranges
-
-```tut:book
-(1 to 9 by 1).map(_ / 10F).toList
-```
 
 ---
 
 ## Long literals
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 val l = 32l
@@ -136,15 +103,17 @@ val l = 32l
 
 --
 
-Bad because : depending on the font, `l` can't be hard to distinguish from `1`
+.section[Bad because] depending on the font, `l` can be hard to distinguish from `1`
 
 ```tut:book
 List(1, 11, 111, 111l, 11111, 11111, 11111)
 ```
 
---
+---
 
-Prefer : upper-case L
+## Long literals .super[2]
+
+.section[Prefer] upper-case L
 
 ```tut:book
 List(1, 11, 111, 111L, 11111, 11111, 11111)
@@ -160,7 +129,7 @@ class: center, middle
 
 ## Enumerations
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 object Status extends Enumeration {
@@ -170,41 +139,39 @@ object Status extends Enumeration {
 
 --
 
-Bad because : no pattern match exhaustivity check
+.section[Bad because] no pattern match exhaustivity check
 
 ```tut:silent
+// No warning even though Status.Nok will crash this
 def foo(w: Status.Value): Unit = w match {
-  case Status.Ok ⇒ println("ok")
+  case Status.Ok => println("ok")
 }
-```
-
---
-
-```tut:book:fail
-foo(Status.Nok)
 ```
 
 ---
 
-## Enumerations ²
+## Enumerations .super[2]
 
-Prefer : sealed trait hierarchies (ADTs)
+.section[Prefer] sealed trait hierarchies (ADTs)
 
 ```tut:silent
 sealed trait Status
+
 object Status {
   case object Ok extends Status
   case object Nok extends Status
 }
 ```
 
---
+---
+
+## Enumerations .super[3]
 
 The compiler now knows we're not exhaustive:
 
 ```tut:book
 def foo(w: Status): Unit = w match {
-  case Status.Ok ⇒ println("ok")
+  case Status.Ok => println("ok")
 }
 ```
 
@@ -212,10 +179,11 @@ def foo(w: Status): Unit = w match {
 
 ## Algebraic Data Types
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 sealed trait Status
+
 object Status {
   case object Ok extends Status
   case object Nok extends Status
@@ -224,7 +192,7 @@ object Status {
 
 --
 
-Bad because : noisy type inference
+.section[Bad because] noisy type inference
 
 ```tut:book
 List(Status.Ok, Status.Nok)
@@ -232,12 +200,13 @@ List(Status.Ok, Status.Nok)
 
 ---
 
-## Algebraic Data Types ²
+## Algebraic Data Types .super[2]
 
-Prefer : having the root type extend `Product` and `Serializable`
+.section[Prefer] having the root type extend `Product` and `Serializable`
 
 ```tut:silent
 sealed trait Status extends Product with Serializable
+
 object Status {
   case object Ok extends Status
   case object Nok extends Status
@@ -256,7 +225,7 @@ List(Status.Ok, Status.Nok)
 
 ## Sealed traits
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 sealed trait Foo
@@ -266,16 +235,18 @@ class Bar extends Foo
 
 --
 
-Bad because : the seal might leak
+.section[Bad because] the seal might leak
 
 ```tut:silent
 // In another file, compiles without a problem
 class FooBar extends Bar
 ```
 
---
+---
 
-Prefer : `final` or `sealed` descendants
+## Sealed traits .super[2]
+
+.section[Prefer] `final` or `sealed` descendants
 
 ```tut:silent
 sealed trait Foo
@@ -283,18 +254,11 @@ sealed trait Foo
 final class Bar extends Foo
 ```
 
-???
-
-Checked by:
-
-* scapegoat
-* wartremover
-
 ---
 
 ## Case classes
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 case class Foo(i: Int)
@@ -302,17 +266,21 @@ case class Foo(i: Int)
 
 --
 
-Bad because : descendants don't behave as you'd expect
+.section[Bad because] descendants don't behave as you'd expect
+
+```tut:silent
+class Bar(i: Int, s: String) extends Foo(i)
+```
 
 ```tut:book
-class Bar(i: Int, s: String) extends Foo(i)
-
 new Bar(1, "foo") == new Bar(1, "bar")
 ```
 
---
+---
 
-Prefer : final case classes
+## Case classes .super[2]
+
+.section[Prefer] final case classes
 
 ```tut:silent
 final case class Foo(i: Int)
@@ -322,7 +290,7 @@ final case class Foo(i: Int)
 
 ## Custom extractors
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 sealed trait Error extends Product with Serializable
@@ -342,9 +310,9 @@ object Error {
 
 ---
 
-## Custom extractors ²
+## Custom extractors .super[2]
 
-Bad because : this compiles without a non-exhaustivity warning
+.section[Bad because] this compiles without a non-exhaustivity warning
 
 ```tut:silent
 def foo(error: Error): Int = error match {
@@ -354,7 +322,7 @@ def foo(error: Error): Int = error match {
 
 ---
 
-## Custom extractors ³
+## Custom extractors .super[3]
 
 Prefer: returning type `Some` for exhaustive extractors
 
@@ -377,7 +345,7 @@ object Error {
 
 ---
 
-## Custom extractors ⁴
+## Custom extractors .super[4]
 
 We're now getting the expected warning:
 
@@ -397,7 +365,7 @@ Where is your god now?
 
 ## Structural types
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 def add1(x: { def get: Int }): Int = 1 + x.get
@@ -413,22 +381,16 @@ add1(Wrapper(1))
 
 --
 
-Bad because :
+.section[Bad because]
 
 * runtime cost
-* not available on all platforms (although it _is_ supported by [scala.js](https://www.scala-js.org)
-  and [scala native](https://github.com/scala-native/scala-native))
-* availability on the JVM might depend on runtime configuration (security managers)
-
-???
-
-Reference: https://twitter.com/den_sh/status/854261433038761984
+* availability on the JVM depends on runtime configuration (security managers)
 
 ---
 
-## Structural types ²
+## Structural types .super[2]
 
-Prefer : type classes
+.section[Prefer] type classes
 
 ```tut:silent
 trait HasGet[A] {
@@ -457,7 +419,7 @@ class: center, middle
 
 ## Type annotation
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 def asOpt[A](a: A) = Some(a)
@@ -465,15 +427,17 @@ def asOpt[A](a: A) = Some(a)
 
 --
 
-Bad because : the return type is not what you'd expect
+.section[Bad because] the return type is not what you'd expect
 
 ```tut:book
 def asOpt[A](a: A) = Some(a)
 ```
 
---
+---
 
-Prefer : explicitly type-annotated public methods
+## Type annotation .super[2]
+
+.section[Prefer] explicitly type-annotated public methods
 
 ```tut:book
 def asOpt[A](a: A): Option[A] = Some(a)
@@ -483,7 +447,7 @@ def asOpt[A](a: A): Option[A] = Some(a)
 
 ## String concatenation
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 1 + "2"
@@ -491,8 +455,8 @@ Common implementation :
 
 --
 
-Bad because :
-* deprecated since 2.13
+.section[Bad because]
+* deprecated from 2.13
 * `+` often does not behave coherently
 
 ```tut:book
@@ -502,7 +466,7 @@ Set("foo") + "bar"
 
 ---
 
-## String concatenation ²
+## String concatenation .super[2]
 
 Let's not even bring this abomination up (not fixed in 2.13):
 
@@ -510,9 +474,10 @@ Let's not even bring this abomination up (not fixed in 2.13):
 List(1) + 2
 ```
 
---
+---
+## String concatenation .super[3]
 
-Prefer :
+.section[Prefer]
 
 * explicit calls to `toString`
 * string interpolation
@@ -526,7 +491,7 @@ s"${foo}bar"
 
 ## Exceptions
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 def parseInt(str: String): Int = str.toInt
@@ -535,15 +500,17 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 --
 
-Bad because : where to begin...
+.section[Bad because] where to begin...
 
 * breaks referential transparency
 * basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
 
---
+---
 
-Prefer :
+## Exceptions .super[2]
+
+.section[Prefer]
 
 * [`Option`](http://www.scala-lang.org/api/2.12.2/scala/Option.html) to convey the potential absence of a value
 * [`Either`](http://www.scala-lang.org/api/2.12.2/scala/util/Either.html) to convey a potentially failing computation
@@ -553,7 +520,7 @@ Prefer :
 
 ## Errors
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 sealed trait DbError extends Product with Serializable
@@ -566,15 +533,13 @@ object DbError {
 
 --
 
-Bad because :
-* existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
-* you sometimes need to merge multiple error types and ADTs don't compose
+.section[Bad because] existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
 
 ---
 
-## Errors ²
+## Errors .super[2]
 
-Prefer : extending `Exception` (but no throwing!)
+.section[Prefer] extending `Exception` (but no throwing!)
 
 ```tut:silent
 sealed trait DbError extends Exception with
@@ -586,7 +551,9 @@ object DbError {
 }
 ```
 
---
+---
+
+## Errors .super[3]
 
 We can now work with "clean" types:
 
@@ -607,7 +574,7 @@ writing. Maybe worth bringing up, since Martin Odersky told me he though that wa
 
 ## The `return` keyword
 
-"Common" implementation :
+.section["Common" implementation]
 
 ```tut:silent:reset
 def add(n: Int, m: Int): Int = return n + m
@@ -615,45 +582,52 @@ def add(n: Int, m: Int): Int = return n + m
 
 --
 
-Bad because :
+.section[Bad because]
 
 * breaks referential transparency
 * basically a `GOTO` statement
 * it doesn't do what you think it does
 
---
+---
+
+## The `return` keyword .super[2]
 
 ```tut:book:fail
-def foo(is: List[Int]): List[Int] = is.map(n ⇒ return n + 1)
+def foo(is: List[Int]): List[Int] =
+  is.map(n => return n + 1)
 ```
 
 Doesn't seem to make sense, but let's change the type...
 
 ---
 
-## The `return` keyword ²
+## The `return` keyword .super[3]
 
 ```tut:book:fail
-def foo(is: List[Int]): Int = is.map(n ⇒ return n + 1)
+def foo(is: List[Int]): Int =
+  is.map(n => return n + 1)
 ```
 
 Fine, let's play along...
 
 ---
 
-## The `return` keyword ³
+## The `return` keyword .super[4]
 
 ```tut:book:fail
-def foo(is: List[Int]): List[Nothing] = is.map(n ⇒ return n + 1)
+def foo(is: List[Int]): List[Nothing] =
+  is.map(n => return n + 1)
 ```
 
 --
 
 **(╯°□°）╯︵ ┻━┻**
 
---
+---
 
-Prefer :
+## The `return` keyword .super[5]
+
+.section[Prefer]
 * never using `return`
 * dotty apparently fixes the more insane corner cases
 
@@ -670,34 +644,34 @@ Dotty apparently either behave "properly" or refuses to compile when it finds a 
 
 ## Recursion
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 def sum(is: List[Int]): Int = is match {
-  case h :: t ⇒ h + sum(t)
-  case _      ⇒ 0
+  case h :: t => h + sum(t)
+  case _      => 0
 }
 ```
 
 --
 
-Bad because : stack unsafe
+.section[Bad because] stack unsafe
 
 ```tut:fail:book
-sum(List.range(1, 30000))
+sum(List.range(1, 300000))
 ```
 
 ---
 
-## Recursion ²
+## Recursion .super[2]
 
-Prefer : tail recursion
+.section[Prefer] tail recursion
 
 ```tut:silent
 def sum(is: List[Int]): Int = {
   def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ loop(t, acc + h)
-    case _      ⇒ acc
+    case h :: t => loop(t, acc + h)
+    case _      => acc
   }
   loop(is, 0)
 }
@@ -708,50 +682,52 @@ def sum(is: List[Int]): Int = {
 Tail recursion is stack-safe:
 
 ```tut:book
-sum(List.range(1, 30000))
+sum(List.range(1, 300000))
 ```
 
 ---
 
 ## Tail recursion
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 class Foo {
   def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
+    case h :: t => sum(t, acc + h)
+    case _      => acc
   }
 }
 ```
 
 ---
 
-## Tail recursion ²
+## Tail recursion .super[2]
 
-Bad because : this is not actually tail recursive
+.section[Bad because] this is not actually tail recursive
 
 ```tut:book:fail
 class Foo {
   @annotation.tailrec
   def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t ⇒ sum(t, acc + h)
-    case _      ⇒ acc
+    case h :: t => sum(t, acc + h)
+    case _      => acc
   }
 }
 ```
 
---
+---
 
-Prefer : always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
+## Tail recursion .super[3]
+
+.section[Prefer] always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
 
 ---
 
 
 ## Implicit conversions
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 implicit def str2int(str: String): Int = Integer.parseInt(str)
@@ -759,7 +735,7 @@ implicit def str2int(str: String): Int = Integer.parseInt(str)
 
 --
 
-Bad because : we use types to prevent us from doing illegal operations
+.section[Bad because] we use types to prevent us from doing illegal operations
 
 ```tut:book:fail
 "foobar" / 2
@@ -767,9 +743,9 @@ Bad because : we use types to prevent us from doing illegal operations
 
 ---
 
-## Implicit conversions ²
+## Implicit conversions .super[2]
 
-Prefer : explicit conversions
+.section[Prefer] explicit conversions
 
 ```tut:book
 scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
@@ -782,7 +758,7 @@ Note: implicit conversions to enrich existing types (type class "syntax") are ok
 
 ## Implicit resolution
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 case class Config(port: Int)
@@ -804,9 +780,9 @@ def getPort(implicit c: Config): Int = c.port
 
 ---
 
-## Implicit resolution ²
+## Implicit resolution .super[2]
 
-Bad because : identical names clash
+.section[Bad because] identical names clash
 
 ```tut:silent
 object a2 {
@@ -828,10 +804,10 @@ The order of the imports is irrelevant.
 
 ---
 
-## Implicit resolution ³
+## Implicit resolution .super[3]
 
 
-Prefer :
+.section[Prefer]
 * very explicit names, including types
 * unfortunately, no foolproof method I know of
 * dotty brings hope!
@@ -844,7 +820,7 @@ I've been told this was either fixed or improved with dotty, but can't find a tr
 
 ## Checking for emptiness
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 def foo[A](s: Seq[A]): Unit =
@@ -853,17 +829,18 @@ def foo[A](s: Seq[A]): Unit =
 
 --
 
-Bad because : not all collections are finite
+.section[Bad because] not all collections are finite
 
-```tut:silent
-val haha: Seq[Int] = Stream.from(1)
-
-// foo(haha) ?
+```scala
+// This doesn't return.
+foo(Stream.from(1))
 ```
 
---
+---
 
-Prefer : `isEmpty` or `nonEmpty`
+## Checking for emptiness .super[2]
+
+.section[Prefer] `isEmpty` or `nonEmpty`
 
 ```tut:book
 Stream.from(1).isEmpty
@@ -873,7 +850,7 @@ Stream.from(1).isEmpty
 
 ## Array comparison
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:silent:reset
 Array(1) == Array(1)
@@ -881,31 +858,27 @@ Array(1) == Array(1)
 
 --
 
-Bad because : it does not work
+.section[Bad because] it does not work
 
 ```tut:book
 Array(1) == Array(1)
 ```
 
---
+---
 
-Prefer : using `sameElements`
+## Array comparison .super[2]
+
+.section[Prefer] using `sameElements`
 
 ```tut:book
 Array(1).sameElements(Array(1))
 ```
 
-???
-Checked by:
-
-* scapegoat
-
-
 ---
 
 ## `Traversable` safety: `head`
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 Seq(1, 2, 3).head
@@ -913,7 +886,7 @@ Seq(1, 2, 3).head
 
 --
 
-Bad because : some collections are empty
+.section[Bad because] some collections are empty
 
 ```tut:book:fail
 Seq.empty[Int].head
@@ -921,9 +894,9 @@ Seq.empty[Int].head
 
 ---
 
-## `Traversable` safety: `head` ²
+## `Traversable` safety: `head` .super[2]
 
-Prefer : `headOption`
+.section[Prefer] `headOption`
 
 ```tut:book
 Seq(1, 2, 3).headOption
@@ -936,7 +909,7 @@ Seq.empty[Int].headOption
 ## `Traversable` safety: `last`
 
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 Seq(1, 2, 3).last
@@ -944,7 +917,7 @@ Seq(1, 2, 3).last
 
 --
 
-Bad because : some collections are empty
+.section[Bad because] some collections are empty
 
 ```tut:book:fail
 Seq.empty[Int].last
@@ -952,10 +925,10 @@ Seq.empty[Int].last
 
 ---
 
-## `Traversable` safety: `last` ²
+## `Traversable` safety: `last` .super[2]
 
 
-Prefer : `lastOption`
+.section[Prefer] `lastOption`
 
 ```tut:book
 Seq(1, 2, 3).lastOption
@@ -966,7 +939,7 @@ Seq.empty[Int].lastOption
 
 ## `Traversable` safety: `tail`
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 Seq(1, 2, 3).tail
@@ -974,7 +947,7 @@ Seq(1, 2, 3).tail
 
 --
 
-Bad because : some collections are empty
+.section[Bad because] some collections are empty
 
 ```tut:book:fail
 Seq.empty[Int].tail
@@ -982,9 +955,9 @@ Seq.empty[Int].tail
 
 ---
 
-## `Traversable` safety: `tail` ²
+## `Traversable` safety: `tail` .super[2]
 
-Prefer : `drop(1)`
+.section[Prefer] `drop(1)`
 
 ```tut:book
 Seq(1, 2, 3).drop(1)
@@ -996,7 +969,7 @@ Seq.empty[Int].drop(1)
 
 ## `Traversable` safety: `init`
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 Seq(1, 2, 3).init
@@ -1004,7 +977,7 @@ Seq(1, 2, 3).init
 
 --
 
-Bad because : some collections are empty
+.section[Bad because] some collections are empty
 
 ```tut:book:fail
 Seq.empty[Int].init
@@ -1012,10 +985,10 @@ Seq.empty[Int].init
 
 ---
 
-## `Traversable` safety: `init` ²
+## `Traversable` safety: `init` .super[2]
 
 
-Prefer : `dropRight(1)`
+.section[Prefer] `dropRight(1)`
 
 ```tut:book
 Seq(1, 2, 3).dropRight(1)
@@ -1028,15 +1001,17 @@ Seq.empty[Int].dropRight(1)
 ## `Traversable` safety: `reduce`
 
 
-Common implementation :
+.section[Common implementation]
 
 ```tut:book:reset
 Seq(1, 2, 3).reduce(_ + _)
 ```
 
---
+---
 
-Bad because : some collections are empty
+## `Traversable` safety: `reduce` .super[2]
+
+.section[Bad because] some collections are empty
 
 ```tut:book:fail
 Seq.empty[Int].reduce(_ + _)
@@ -1044,10 +1019,10 @@ Seq.empty[Int].reduce(_ + _)
 
 ---
 
-## `Traversable` safety: `reduce` ²
+## `Traversable` safety: `reduce` .super[3]
 
 
-Prefer :
+.section[Prefer]
 
 * `reduceOption`
 
@@ -1103,8 +1078,7 @@ Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
 
 Get in touch with [`Besedo`](https://twitter.com/besedo_official), we're always on the lookout for Scala talent
 
-Slides backed by [remark.js](https://remarkjs.com/) and [Rob Norris](https://twitter.com/tpolecat)' amazing
-[tut](https://github.com/tpolecat/tut)
+Slides backed by [remark.js](https://remarkjs.com/) and the amazing [tut](https://github.com/tpolecat/tut)
 
 ---
 
