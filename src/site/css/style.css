@@ -10,7 +10,24 @@ body {
 }
 
 .remark-inline-code, .remark-code {
-    font-family: "Fira Mono";
+    font-family:  "Fira Mono";
+    color:         #586e75;
+    background:    #fdf6e3;
+}
+
+a .remark-inline-code {
+    color: #268bd2;
+}
+
+.remark-inline-code {
+    border:        1px solid #eee8d5;
+    font-size:     0.9em;
+    padding:       2px 5px 2px 5px;
+    border-radius: 5px;
+}
+
+h1 .remark-inline-code, h2 .remark-inline-code, h3 .remark-inline-code {
+    font-weight: normal;
 }
 
 .remark-code {
