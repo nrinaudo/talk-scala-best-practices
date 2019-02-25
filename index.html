@@ -11,7 +11,7 @@ class: center, middle
 
 # Scala Best Practices I Wish Someone'd Told Me About
 
-Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • [Besedo](http://besedo.com)
+Nicolas Rinaudo • [@NicolasRinaudo] • [Besedo]
 
 ---
 
@@ -313,9 +313,7 @@ object ExtractSome {
 }
 ```
 
----
-
-## Custom extractors .super[2]
+--
 
 .section[Bad because] this compiles without a non-exhaustivity warning
 
@@ -327,7 +325,7 @@ def foo[A](o: Option[A]): A = o match {
 
 ---
 
-## Custom extractors .super[3]
+## Custom extractors .super[2]
 
 .section[Prefer] returning type `Some` for exhaustive extractors
 
@@ -339,7 +337,7 @@ object ExtractSome {
 
 ---
 
-## Custom extractors .super[4]
+## Custom extractors .super[3]
 
 We're now getting the expected warning:
 
@@ -2190,9 +2188,9 @@ I'd be happy to take suggestions for additions to this list, either now or after
 
 Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
 
-Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
+Find me on Twitter ([@NicolasRinaudo])
 
-Get in touch with [`Besedo`](https://twitter.com/besedo_official), we're always on the lookout for Scala talent
+Get in touch with [Besedo], we're always on the lookout for Scala talent
 
 Slides backed by [remark.js](https://remarkjs.com/) and the amazing [tut](https://github.com/tpolecat/tut)
 
@@ -2201,6 +2199,9 @@ Slides backed by [remark.js](https://remarkjs.com/) and the amazing [tut](https:
 class: center, middle
 
 # Thanks!
+
+[@NicolasRinaudo]:https://twitter.com/NicolasRinaudo
+[Besedo]:https://twitter.com/besedo_official
 
     </textarea>
     <script src="js/remark.js" type="text/javascript">
