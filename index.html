@@ -25,112 +25,42 @@ Each slide will start with a common pattern. See if you can work out what's wron
 
 ---
 
-class: center, middle
-
-# Working with Numbers
-
----
-
-## Checking for oddness
+## Unicode operators
 
 .section[Common implementation]
 
 ```scala
-3 % 2 == 1
+1 → 4 / 2
 ```
 
 --
 
-.section[Bad because] fails on negative numbers
+.section[Bad because] not actually equivalent to the ASCII operator
+
 
 ```scala
--3 % 2 == 1
-// res1: Boolean = false
+1 → 4 / 2
+// <console>:13: error: value / is not a member of (Int, Int)
+//        1 → 4 / 2
+//              ^
 ```
 
 ---
 
-## Checking for oddness .super[2]
+## Unicode operators .super[2]
 
-.section[Prefer]
-
-```scala
--3 % 2 != 0
-// res2: Boolean = true
-```
-
----
-
-## Checking for `NaN`
-
-.section[Common implementation]
+.section[Prefer] the ASCII operator
 
 ```scala
-2.0 == Double.NaN
+1 -> 4 / 2
+// res2: (Int, Int) = (1,2)
 ```
 
 --
 
-.section[Bad because] it does not work
+.section[Future improvements]
 
-```scala
-Double.NaN == Double.NaN
-// res1: Boolean = false
-```
-
----
-
-## Checking for `NaN` .super[2]
-
-.section[Prefer] calling `isNaN`
-
-```scala
-Double.NaN.isNaN
-// res2: Boolean = true
-
-2.0.isNaN
-// res3: Boolean = false
-```
-
-???
-
-Normal behaviour according to IEEE 754
-
----
-
-## Long literals
-
-.section[Common implementation]
-
-```scala
-val l = 32l
-```
-
---
-
-.section[Bad because] depending on the font, `l` can be hard to distinguish from `1`
-
-```scala
-List(1, 11, 111, 111l, 11111, 11111, 11111)
-// res0: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
----
-
-## Long literals .super[2]
-
-.section[Prefer] upper-case L
-
-```scala
-List(1, 11, 111, 111L, 11111, 11111, 11111)
-// res1: List[Long] = List(1, 11, 111, 111, 11111, 11111, 11111)
-```
-
----
-
-class: center, middle
-
-# Data Representation
+Deprecated in [2.13](https://github.com/scala/scala/pull/7540)
 
 ---
 
@@ -189,6 +119,14 @@ def foo(w: Status): Unit = w match {
 
 ---
 
+## Enumerations .super[4]
+
+.section[Future improvements]
+
+Dotty might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6ecdf942b4c4de347) [`Enumeration`](https://www.scala-lang.org/api/current/scala/Enumeration.html) in favour of [enum](https://dotty.epfl.ch/docs/reference/enums/enums.html)
+
+---
+
 ## Algebraic Data Types
 
 .section[Common implementation]
@@ -215,7 +153,7 @@ List(Status.Ok, Status.Nok)
 
 ## Algebraic Data Types .super[2]
 
-.section[Prefer] having the root type extend `Product` and `Serializable`
+.section[Prefer] having the root type extend [`Product`](https://www.scala-lang.org/api/current/scala/Product.html) and [`Serializable`](https://www.scala-lang.org/api/current/scala/Serializable.html)
 
 ```scala
 sealed trait Status extends Product with Serializable
@@ -234,6 +172,14 @@ The correct type is now inferred:
 List(Status.Ok, Status.Nok)
 // res1: List[Status] = List(Ok, Nok)
 ```
+
+---
+
+## Algebraic Data Types .super[3]
+
+.section[Future improvements]
+
+Dotty does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
 
 ---
 
@@ -327,7 +273,7 @@ def foo[A](o: Option[A]): A = o match {
 
 ## Custom extractors .super[2]
 
-.section[Prefer] returning type `Some` for exhaustive extractors
+.section[Prefer] returning type [`Some`](https://www.scala-lang.org/api/current/scala/Some.html) for exhaustive extractors
 
 ```scala
 object ExtractSome {
@@ -357,6 +303,14 @@ def foo[A](o: Option[A]): A = o match {
 Scala warns when it can find proof of non-exhaustivity, not when it can't find proof of exhaustivity.
 
 Where is your god now?
+
+---
+
+## Custom extractors .super[4]
+
+.section[Future improvements]
+
+Dotty's exhaustivity checker is [much improved](https://infoscience.epfl.ch/record/225497/files/p61-liu.pdf), fixing most of these oddities
 
 ---
 
@@ -409,6 +363,14 @@ add1(Wrapper(1))
 
 ---
 
+## Structural types .super[3]
+
+.section[Future improvements]
+
+Dotty's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
+
+---
+
 class: center, middle
 
 # Safety (type or otherwise)
@@ -457,9 +419,7 @@ def asOpt[A](a: A): Option[A] = Some(a)
 
 --
 
-.section[Bad because]
-* deprecated from 2.13
-* `+` often does not behave coherently
+.section[Bad because] `+` often does not behave coherently
 
 ```scala
 List("foo") + "bar"
@@ -473,7 +433,7 @@ Set("foo") + "bar"
 
 ## String concatenation .super[2]
 
-Let's not even bring this abomination up (not fixed in 2.13):
+Let's not even bring this abomination up:
 
 ```scala
 List(1) + 2
@@ -488,7 +448,6 @@ List(1) + 2
 ## String concatenation .super[3]
 
 .section[Prefer]
-
 * explicit calls to `toString`
 * string interpolation
 
@@ -499,6 +458,23 @@ val foo = "FOO"
 s"${foo}bar"
 // res4: String = FOObar
 ```
+
+---
+
+## String concatenation .super[4]
+
+.section[Future improvements]
+
+* deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
+* removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
+* mysteriously fully supported in [Dotty](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
+
+???
+
+Currently in a weird state:
+- deprecated in 2.13
+- removed from 2.14
+- fully supported in Dotty
 
 ---
 
@@ -546,13 +522,13 @@ object DbError {
 
 --
 
-.section[Bad because] existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
+.section[Bad because] existing APIs ([`Future`](https://www.scala-lang.org/api/current/scala/concurrent/Future.html), [`Try`](https://www.scala-lang.org/api/current/scala/util/Try.html)...) rely on [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) to convey errors
 
 ---
 
 ## Errors .super[2]
 
-.section[Prefer] extending `Exception` (but no throwing!)
+.section[Prefer] extending [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) (but no throwing!)
 
 ```scala
 sealed trait DbError extends Exception with
@@ -655,18 +631,7 @@ def foo(is: List[Int]): List[Nothing] =
 
 ## The `return` keyword .super[5]
 
-.section[Prefer]
-* never using `return`
-* dotty apparently fixes the more insane corner cases
-
-
-???
-
-Also: not referentially transparent
-
-See https://tpolecat.github.io/2014/05/09/return.html
-
-Dotty apparently either behave "properly" or refuses to compile when it finds a `return` in a lambda.
+.section[Prefer] never using `return`
 
 ---
 
@@ -688,7 +653,7 @@ def sum(is: List[Int]): Int = is match {
 ```scala
 sum(List.range(1, 300000))
 // java.lang.StackOverflowError
-//   at .sum(<console>:13)
+//   at .sum(<console>:12)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
@@ -1797,9 +1762,9 @@ implicit def str2int(str: String): Int = Integer.parseInt(str)
 ```scala
 "foobar" / 2
 // java.lang.NumberFormatException: For input string: "foobar"
-//   at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
-//   at java.base/java.lang.Integer.parseInt(Integer.java:652)
-//   at java.base/java.lang.Integer.parseInt(Integer.java:770)
+//   at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
+//   at java.lang.Integer.parseInt(Integer.java:580)
+//   at java.lang.Integer.parseInt(Integer.java:615)
 //   at .str2int(<console>:12)
 //   ... 43 elided
 ```
@@ -1816,6 +1781,15 @@ scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
 ```
 
 Note: implicit conversions to enrich existing types (type class "syntax") are ok.
+
+---
+
+## Implicit conversions .super[3]
+
+.section[Future improvements]
+
+* Dotty locks this behind a [compilation flag](https://dotty.epfl.ch/docs/reference/contextual/conversions.html)
+* [Extension methods](https://dotty.epfl.ch/docs/reference/contextual/extension-methods.html) have a separate mechanism in Dotty
 
 
 ---
@@ -1878,11 +1852,12 @@ The order of the imports is irrelevant.
 .section[Prefer]
 * very explicit names, including types
 * unfortunately, no foolproof method I know of
-* dotty brings hope!
 
-???
+--
 
-I've been told this was either fixed or improved with dotty, but can't find a trace of it online.
+.section[Future improvements]
+
+[Fixed](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty
 
 ---
 
@@ -1944,6 +1919,16 @@ Array(1) == Array(1)
 Array(1).sameElements(Array(1))
 // res2: Boolean = true
 ```
+
+---
+
+## Array comparison .super[3]
+
+.section[Future improvements]
+
+2.13 introduces [immutable arrays](https://scala-lang.org/files/archive/api/2.13.x/scala/collection/immutable/ArraySeq.html) which behave as expected
+
+Mutable arrays are still 🤪 though
 
 ---
 
@@ -2183,10 +2168,20 @@ I'd be happy to take suggestions for additions to this list, either now or after
 
 ---
 
+## Special thanks
+
+The [`scala/contributors`](https://gitter.im/scala/contributors) and [`lampepfl/dotty`](https://gitter.im/lampepfl/dotty) Gitter channels, and especially [Guillaume Martres](https://github.com/smarter).
+
+They basically wrote the _Future improvements_ sections.
+
+---
+
 
 ## More information
 
 Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
+
+Articles on these are available on https://nrinaudo.github.io/scala-best-practices/
 
 Find me on Twitter ([@NicolasRinaudo])
 
