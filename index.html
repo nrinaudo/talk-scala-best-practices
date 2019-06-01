@@ -74,20 +74,31 @@ object Status extends Enumeration {
 }
 ```
 
---
+---
 
-.section[Bad because] no pattern match exhaustivity check
+## Enumerations .super[2]
+
+.section[Bad because] This compiles without a non-exhaustivity warning
 
 ```scala
-// No warning even though Status.Nok will crash this
 def foo(w: Status.Value): Unit = w match {
   case Status.Ok => println("ok")
 }
 ```
 
+--
+
+And fails at runtime
+```scala
+foo(Status.Nok)
+// scala.MatchError: Nok (of class scala.Enumeration$Val)
+//   at .foo(<console>:13)
+//   ... 43 elided
+```
+
 ---
 
-## Enumerations .super[2]
+## Enumerations .super[3]
 
 .section[Prefer] sealed trait hierarchies (ADTs)
 
@@ -102,7 +113,7 @@ object Status {
 
 ---
 
-## Enumerations .super[3]
+## Enumerations .super[4]
 
 The compiler now knows we're not exhaustive:
 
@@ -119,7 +130,7 @@ def foo(w: Status): Unit = w match {
 
 ---
 
-## Enumerations .super[4]
+## Enumerations .super[5]
 
 .section[Future improvements]
 
@@ -188,6 +199,7 @@ Dotty does a better job of hiding the issue, but [doesn't fix it](https://contri
 .section[Common implementation]
 
 ```scala
+// File Foo.scala
 sealed trait Foo
 
 class Bar extends Foo
@@ -198,7 +210,7 @@ class Bar extends Foo
 .section[Bad because] the seal might leak
 
 ```scala
-// In another file, compiles without a problem
+// File FooBar.scala
 class FooBar extends Bar
 ```
 
@@ -259,7 +271,9 @@ object ExtractSome {
 }
 ```
 
---
+---
+
+## Custom extractors .super[2]
 
 .section[Bad because] this compiles without a non-exhaustivity warning
 
@@ -269,11 +283,21 @@ def foo[A](o: Option[A]): A = o match {
 }
 ```
 
+--
+
+And fails at runtime
+```scala
+foo(None)
+// scala.MatchError: None (of class scala.None$)
+//   at .foo(<console>:13)
+//   ... 43 elided
+```
+
 ---
 
-## Custom extractors .super[2]
+## Custom extractors .super[3]
 
-.section[Prefer] returning type [`Some`](https://www.scala-lang.org/api/current/scala/Some.html) for exhaustive extractors
+.section[Prefer] returning type [`Some`](https://www.scala-lang.org/api/current/scala/Some.html) for irrefutable extractors
 
 ```scala
 object ExtractSome {
@@ -283,7 +307,7 @@ object ExtractSome {
 
 ---
 
-## Custom extractors .super[3]
+## Custom extractors .super[4]
 
 We're now getting the expected warning:
 
@@ -306,7 +330,7 @@ Where is your god now?
 
 ---
 
-## Custom extractors .super[4]
+## Custom extractors .super[5]
 
 .section[Future improvements]
 
@@ -371,13 +395,6 @@ Dotty's [structural types](https://dotty.epfl.ch/docs/reference/changed-features
 
 ---
 
-class: center, middle
-
-# Safety (type or otherwise)
-
-
----
-
 ## Type annotation
 
 .section[Common implementation]
@@ -399,12 +416,16 @@ def asOpt[A](a: A) = Some(a)
 
 ## Type annotation .super[2]
 
-.section[Prefer] explicitly type-annotated public methods
+.section[Prefer] explicitly type-annotated public members
 
 ```scala
 def asOpt[A](a: A): Option[A] = Some(a)
 // asOpt: [A](a: A)Option[A]
 ```
+
+--
+
+.section[Future improvements] Dotty requires type annotations for implicits
 
 ---
 
@@ -489,15 +510,51 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 --
 
-.section[Bad because] where to begin...
+.section[Bad because] throws exceptions, which is:
 
-* breaks referential transparency
 * basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
+* referentially opaque
 
 ---
 
 ## Exceptions .super[2]
+If `throw` was referentially transparent, `foo1` and `foo2` would be equivalent in:
+
+```scala
+def foo1() = if(false) throw new Exception else 2
+
+def foo2() = {
+  val a = throw new Exception
+  if (false) a  else 2
+}
+```
+
+---
+
+## Exceptions .super[3]
+
+`foo1` terminates:
+
+```scala
+foo1()
+// res0: Int = 2
+```
+
+--
+
+`foo2` does not:
+
+```scala
+foo2()
+// java.lang.Exception
+//   at .foo2(<console>:13)
+//   ... 43 elided
+```
+
+---
+
+## Exceptions .super[4]
 
 .section[Prefer]
 
@@ -633,6 +690,10 @@ def foo(is: List[Int]): List[Nothing] =
 
 .section[Prefer] never using `return`
 
+--
+
+.section[Future improvements] possibly in [Dotty](https://github.com/lampepfl/dotty/issues/4240), but nothing concrete (yet)
+
 ---
 
 ## Recursion
@@ -653,7 +714,7 @@ def sum(is: List[Int]): Int = is match {
 ```scala
 sum(List.range(1, 300000))
 // java.lang.StackOverflowError
-//   at .sum(<console>:12)
+//   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
 //   at .sum(<console>:13)
@@ -1840,13 +1901,29 @@ object a2 {
 //          ^
 ```
 
-???
-
-The order of the imports is irrelevant.
-
 ---
 
 ## Implicit resolution .super[3]
+
+Clear when you remove the implicits:
+
+```scala
+{
+  import a1._, a2._
+
+  defaultConfig
+}
+// <console>:18: error: reference to defaultConfig is ambiguous;
+// it is imported twice in the same scope by
+// import a2._
+// and import a1._
+//          defaultConfig
+//          ^
+```
+
+---
+
+## Implicit resolution .super[4]
 
 
 .section[Prefer]
@@ -1857,38 +1934,8 @@ The order of the imports is irrelevant.
 
 .section[Future improvements]
 
-[Fixed](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty
-
----
-
-## Checking for emptiness
-
-.section[Common implementation]
-
-```scala
-def foo[A](s: Seq[A]): Unit =
-  println(if(s.size == 0) "empty" else "non-empty")
-```
-
---
-
-.section[Bad because] not all collections are finite
-
-```scala
-// This doesn't return.
-foo(Stream.from(1))
-```
-
----
-
-## Checking for emptiness .super[2]
-
-.section[Prefer] `isEmpty` or `nonEmpty`
-
-```scala
-Stream.from(1).isEmpty
-// res0: Boolean = false
-```
+* Dotty's [import implied](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
+* Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty anyway
 
 ---
 
@@ -1931,6 +1978,38 @@ Array(1).sameElements(Array(1))
 Mutable arrays are still 🤪 though
 
 ---
+
+## Checking for emptiness
+
+.section[Common implementation]
+
+```scala
+def foo[A](s: Seq[A]): Unit =
+  println(if(s.size == 0) "empty" else "non-empty")
+```
+
+--
+
+.section[Bad because] not all collections are finite
+
+```scala
+// This doesn't return.
+foo(Stream.from(1))
+```
+
+---
+
+## Checking for emptiness .super[2]
+
+.section[Prefer] `isEmpty` or `nonEmpty`
+
+```scala
+Stream.from(1).isEmpty
+// res0: Boolean = false
+```
+
+---
+
 
 ## `Traversable` safety: `head`
 
@@ -2150,7 +2229,7 @@ class: center, middle
 
 ## Enforcing best practices
 
-* Code reviews
+* [Code reviews](https://smartbear.com/SmartBear/media/pdfs/Best-Kept-Secrets-of-Peer-Code-Review_Redirected.pdf)
 * Automated tools
   * [scapegoat](https://github.com/sksamuel/scapegoat)
   * [wartremover](http://www.wartremover.org)
