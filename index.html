@@ -25,6 +25,80 @@ Each slide will start with a common pattern. See if you can work out what's wron
 
 ---
 
+## Array comparison
+
+.section[Common implementation]
+
+```scala
+Array(1) == Array(1)
+```
+
+--
+
+.section[Bad because] it does not work
+
+```scala
+Array(1) == Array(1)
+// res1: Boolean = false
+```
+
+---
+
+## Array comparison .super[2]
+
+.section[Prefer] using `sameElements`
+
+```scala
+Array(1).sameElements(Array(1))
+// res2: Boolean = true
+```
+
+---
+
+## Array comparison .super[3]
+
+.section[Future improvements]
+
+2.13 introduces [immutable arrays](https://scala-lang.org/files/archive/api/2.13.x/scala/collection/immutable/ArraySeq.html) which behave as expected
+
+Mutable arrays are still 🤪 though
+
+---
+
+## Type annotation
+
+.section[Common implementation]
+
+```scala
+def asOpt[A](a: A) = Some(a)
+```
+
+--
+
+.section[Bad because] the return type is not what you'd expect
+
+```scala
+def asOpt[A](a: A) = Some(a)
+// asOpt: [A](a: A)Some[A]
+```
+
+---
+
+## Type annotation .super[2]
+
+.section[Prefer] explicitly type-annotated public members
+
+```scala
+def asOpt[A](a: A): Option[A] = Some(a)
+// asOpt: [A](a: A)Option[A]
+```
+
+--
+
+.section[Future improvements] Dotty requires type annotations for implicits
+
+---
+
 ## Unicode operators
 
 .section[Common implementation]
@@ -138,6 +212,40 @@ Dotty might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6e
 
 ---
 
+## Sealed traits
+
+.section[Common implementation]
+
+```scala
+// File Foo.scala
+sealed trait Foo
+
+class Bar extends Foo
+```
+
+--
+
+.section[Bad because] the seal might leak
+
+```scala
+// File FooBar.scala
+class FooBar extends Bar
+```
+
+---
+
+## Sealed traits .super[2]
+
+.section[Prefer] `final` or `sealed` descendants
+
+```scala
+sealed trait Foo
+
+final class Bar extends Foo
+```
+
+---
+
 ## Algebraic Data Types
 
 .section[Common implementation]
@@ -190,41 +298,7 @@ List(Status.Ok, Status.Nok)
 
 .section[Future improvements]
 
-Dotty does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
-
----
-
-## Sealed traits
-
-.section[Common implementation]
-
-```scala
-// File Foo.scala
-sealed trait Foo
-
-class Bar extends Foo
-```
-
---
-
-.section[Bad because] the seal might leak
-
-```scala
-// File FooBar.scala
-class FooBar extends Bar
-```
-
----
-
-## Sealed traits .super[2]
-
-.section[Prefer] `final` or `sealed` descendants
-
-```scala
-sealed trait Foo
-
-final class Bar extends Foo
-```
+Dotty's `enum` does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
 
 ---
 
@@ -354,7 +428,7 @@ add1(Wrapper(1))
 .section[Bad because]
 
 * runtime cost
-* availability on the JVM depends on runtime configuration (security managers)
+* availability on the JVM depends on [runtime configuration](https://docs.oracle.com/javase/7/docs/api/java/lang/SecurityManager.html)
 
 ---
 
@@ -386,110 +460,6 @@ add1(Wrapper(1))
 .section[Future improvements]
 
 Dotty's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
-
----
-
-## Type annotation
-
-.section[Common implementation]
-
-```scala
-def asOpt[A](a: A) = Some(a)
-```
-
---
-
-.section[Bad because] the return type is not what you'd expect
-
-```scala
-def asOpt[A](a: A) = Some(a)
-// asOpt: [A](a: A)Some[A]
-```
-
----
-
-## Type annotation .super[2]
-
-.section[Prefer] explicitly type-annotated public members
-
-```scala
-def asOpt[A](a: A): Option[A] = Some(a)
-// asOpt: [A](a: A)Option[A]
-```
-
---
-
-.section[Future improvements] Dotty requires type annotations for implicits
-
----
-
-## String concatenation
-
-.section[Common implementation]
-
-```scala
-1 + "2"
-// res0: String = 12
-```
-
---
-
-.section[Bad because] `+` often does not behave coherently
-
-```scala
-List("foo") + "bar"
-// res1: String = List(foo)bar
-
-Set("foo") + "bar"
-// res2: scala.collection.immutable.Set[String] = Set(foo, bar)
-```
-
----
-
-## String concatenation .super[2]
-
-Let's not even bring this abomination up:
-
-```scala
-List(1) + 2
-// <console>:13: error: type mismatch;
-//  found   : Int(2)
-//  required: String
-//        List(1) + 2
-//                  ^
-```
-
----
-## String concatenation .super[3]
-
-.section[Prefer]
-* explicit calls to `toString`
-* string interpolation
-
-```scala
-val foo = "FOO"
-// foo: String = FOO
-
-s"${foo}bar"
-// res4: String = FOObar
-```
-
----
-
-## String concatenation .super[4]
-
-.section[Future improvements]
-
-* deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
-* removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
-* mysteriously fully supported in [Dotty](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
-
-???
-
-Currently in a weird state:
-- deprecated in 2.13
-- removed from 2.14
-- fully supported in Dotty
 
 ---
 
@@ -624,8 +594,8 @@ def add(n: Int, m: Int): Int = return n + m
 
 .section[Bad because]
 
-* breaks referential transparency
 * basically a `GOTO` statement
+* breaks referential transparency
 * it doesn't do what you think it does
 
 ---
@@ -686,7 +656,7 @@ def foo(is: List[Int]): List[Nothing] =
 
 --
 
-.section[Future improvements] possibly in [Dotty](https://github.com/lampepfl/dotty/issues/4240), but nothing concrete (yet)
+.section[Future improvements] possibly in [Dotty](https://github.com/lampepfl/dotty/issues/4240)
 
 ---
 
@@ -821,43 +791,73 @@ Clear when you remove the implicits:
 
 ---
 
-## Array comparison
+## String concatenation
 
 .section[Common implementation]
 
 ```scala
-Array(1) == Array(1)
+1 + "2"
+// res0: String = 12
 ```
 
 --
 
-.section[Bad because] it does not work
+.section[Bad because] `+` often does not behave coherently
 
 ```scala
-Array(1) == Array(1)
-// res1: Boolean = false
+List("foo") + "bar"
+// res1: String = List(foo)bar
+
+Set("foo") + "bar"
+// res2: scala.collection.immutable.Set[String] = Set(foo, bar)
 ```
 
 ---
 
-## Array comparison .super[2]
+## String concatenation .super[2]
 
-.section[Prefer] using `sameElements`
+Let's not even bring this abomination up:
 
 ```scala
-Array(1).sameElements(Array(1))
-// res2: Boolean = true
+List(1) + 2
+// <console>:13: error: type mismatch;
+//  found   : Int(2)
+//  required: String
+//        List(1) + 2
+//                  ^
+```
+
+---
+## String concatenation .super[3]
+
+.section[Prefer]
+* explicit calls to `toString`
+* string interpolation
+
+```scala
+val foo = "FOO"
+// foo: String = FOO
+
+s"${foo}bar"
+// res4: String = FOObar
 ```
 
 ---
 
-## Array comparison .super[3]
+## String concatenation .super[4]
 
 .section[Future improvements]
 
-2.13 introduces [immutable arrays](https://scala-lang.org/files/archive/api/2.13.x/scala/collection/immutable/ArraySeq.html) which behave as expected
+* deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
+* removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
+* mysteriously fully supported in [Dotty](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
 
-Mutable arrays are still 🤪 though
+???
+
+Currently in a weird state:
+- deprecated in 2.13
+- removed from 2.14
+- fully supported in Dotty
 
 ---
 
