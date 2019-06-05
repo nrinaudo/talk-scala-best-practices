@@ -1,4 +1,4 @@
-@import './fira_code/fira_code.css';
+@import './fira/fira.css';
 
 body {
     /* I like the way https://plfa.github.io/ looks, so I basically stole this magical incantation. */
@@ -10,7 +10,7 @@ body {
 }
 
 .remark-inline-code, .remark-code {
-    font-family:  "Fira Code";
+    font-family:  "Fira Mono";
     color:         #586e75;
     background:    #fdf6e3;
 }
@@ -92,20 +92,4 @@ blockquote p {
 /* Comments tend to be huge - stack traces and compiler errors. This makes them more readable. */
 .hljs-comment {
     font-size: .85em;
-}
-
-table {
-    border-collapse: collapse;
-    background:      #fff;
-}
-
-th {
-    background: #2980b9;
-    color:      #ecf0f4;
-}
-
-th, td {
-    border:     1px solid #ecf0f4;
-    padding:    5px 10px 5px 10px;
-    text-align: center
 }
