@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Scala Best Practices I Wish Someone'd Told Me About</title>
+    <title>Decision Tables: a tool for lazy people</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" type="text/css" href="css/style.css"/>
   </head>
@@ -9,7 +9,7 @@
       <textarea id="source">
 class: center, middle
 
-# Scala Best Practices I Wish Someone'd Told Me About
+# Decision Tables: a tool for lazy people
 
 Nicolas Rinaudo • [@NicolasRinaudo] • [Besedo]
 
@@ -17,891 +17,242 @@ Nicolas Rinaudo • [@NicolasRinaudo] • [Besedo]
 
 ## Overview
 
-This is meant for Scala developers of beginner to intermediate levels.
+Decision tables are a form of specifications that can be explained in a couple of minutes.
 
-The goal is to list common bad practices often seen in Scala code, and how to avoid them.
+I intend to show that they're useful for more than just specifications.
 
-Each slide will start with a common pattern. See if you can work out what's wrong with it!
+We'll be using FizzBuzz as our running example.
 
 ---
 
-## Array comparison
+## FizzBuzz
 
-.section[Common implementation]
+> Write a program that prints the numbers from 1 to 100.
+> But for multiples of three print `Fizz` instead of the number and for the multiples of five print `Buzz`.
+> For numbers which are multiples of both three and five print “FizzBuzz”.
 
-```scala
-Array(1) == Array(1)
-```
+---
+
+## FizzBuzz as a Decision Table
+
+ n % 3 | n % 5 | Output
+-------|-------|----------
+ T     | T     | FizzBuzz
+ T     | F     | Fizz
+ F     | T     | Buzz
+ F     | F     | n
 
 --
 
-.section[Bad because] it does not work
-
-```scala
-Array(1) == Array(1)
-// res1: Boolean = false
-```
-
----
-
-## Array comparison .super[2]
-
-.section[Prefer] using `sameElements`
-
-```scala
-Array(1).sameElements(Array(1))
-// res2: Boolean = true
-```
-
----
-
-## Array comparison .super[3]
-
-.section[Future improvements]
-
-2.13 introduces [immutable arrays](https://scala-lang.org/files/archive/api/2.13.x/scala/collection/immutable/ArraySeq.html) which behave as expected
-
-Mutable arrays are still 🤪 though
-
----
-
-## Type annotation
-
-.section[Common implementation]
-
-```scala
-def asOpt[A](a: A) = Some(a)
-```
+* `n % 3` and `n % 5` are _conditions_
+* `Output` is an _outcome_
 
 --
 
-.section[Bad because] the return type is not what you'd expect
-
-```scala
-def asOpt[A](a: A) = Some(a)
-// asOpt: [A](a: A)Some[A]
-```
+This can be written by non-coders.
 
 ---
 
-## Type annotation .super[2]
-
-.section[Prefer] explicitly type-annotated public members
+## Implementing FizzBuzz
 
 ```scala
-def asOpt[A](a: A): Option[A] = Some(a)
-// asOpt: [A](a: A)Option[A]
-```
-
---
-
-.section[Future improvements] Dotty requires type annotations for implicits
-
----
-
-## Unicode operators
-
-.section[Common implementation]
-
-```scala
-1 → 4 / 2
-```
-
---
-
-.section[Bad because] not actually equivalent to the ASCII operator
-
-
-```scala
-1 → 4 / 2
-// <console>:13: error: value / is not a member of (Int, Int)
-//        1 → 4 / 2
-//              ^
-```
-
----
-
-## Unicode operators .super[2]
-
-.section[Prefer] the ASCII operator
-
-```scala
-1 -> 4 / 2
-// res2: (Int, Int) = (1,2)
-```
-
---
-
-.section[Future improvements]
-
-Deprecated in [2.13](https://github.com/scala/scala/pull/7540)
-
----
-
-## Enumerations
-
-.section[Common implementation]
-
-```scala
-object Status extends Enumeration {
-  val Ok, Nok = Value
+def fizzBuzz(i: Int): String = {
+  if(i % 3 == 0) {
+    if(i % 5 == 0) "FizzBuzz"
+    else "Fizz"
+  }
+  else if(i % 5 == 0) "Buzz"
+  else i.toString
 }
 ```
 
 ---
 
-## Enumerations .super[2]
-
-.section[Bad because] This compiles without a non-exhaustivity warning
+## Unit Testing FizzBuzz
 
 ```scala
-def foo(w: Status.Value): Unit = w match {
-  case Status.Ok => println("ok")
+import org.scalatest.FunSuite
+
+class FizzBuzzSuite extends FunSuite {
+
+  test("n divisible by 3 and 5 outputs FizzBuzz") {
+    assert(fizzBuzz(15) == "FizzBuz")
+  }
+
+  test("n divisible by 3 but not 5 outputs Fizz") {
+    assert(fizzBuzz(3) == "Fizz")
+  }
+
+  // ...
 }
 ```
 
 --
 
-And fails at runtime
-```scala
-foo(Status.Nok)
-// scala.MatchError: Nok (of class scala.Enumeration$Val)
-//   at .foo(<console>:13)
-//   ... 43 elided
-```
+This handles too small a subset of the test space
 
 ---
 
-## Enumerations .super[3]
+## Property Testing FizzBuzz
 
-.section[Prefer] sealed trait hierarchies (ADTs)
-
-```scala
-sealed trait Status
-
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
-}
-```
-
----
-
-## Enumerations .super[4]
-
-The compiler now knows we're not exhaustive:
+We'll need a generator of FizzBuzz-relevant integers:
 
 ```scala
-def foo(w: Status): Unit = w match {
-  case Status.Ok => println("ok")
-}
-// <console>:14: warning: match may not be exhaustive.
-// It would fail on the following input: Nok
-//        def foo(w: Status): Unit = w match {
-//                                   ^
-// foo: (w: Status)Unit
-```
+import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck.Gen
 
----
-
-## Enumerations .super[5]
-
-.section[Future improvements]
-
-Dotty might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6ecdf942b4c4de347) [`Enumeration`](https://www.scala-lang.org/api/current/scala/Enumeration.html) in favour of [enum](https://dotty.epfl.ch/docs/reference/enums/enums.html)
-
----
-
-## Sealed traits
-
-.section[Common implementation]
-
-```scala
-// File Foo.scala
-sealed trait Foo
-
-class Bar extends Foo
+def genInt(div3: Boolean, div5: Boolean): Gen[Int] =
+  arbitrary[Int].suchThat { i =>
+    (!div3 || i % 3 == 0) &&
+    (!div5 || i % 5 == 0)
+  }
 ```
 
 --
 
-.section[Bad because] the seal might leak
-
-```scala
-// File FooBar.scala
-class FooBar extends Bar
-```
+.section[Note] in real life, do not use `suchThat`!
 
 ---
 
-## Sealed traits .super[2]
-
-.section[Prefer] `final` or `sealed` descendants
+## Property Testing FizzBuzz .super[2]
 
 ```scala
-sealed trait Foo
+import org.scalacheck.Properties
+import org.scalacheck.Prop.forAll
 
-final class Bar extends Foo
-```
+object FizzBuzzSpecifications extends Properties("FizzBuzz") {
 
----
+  property("n % 3, n % 5") = forAll(genInt(true, true)) { i =>
+    fizzBuzz(i) == "FizzBuzz"
+  }
 
-## Algebraic Data Types
+  property("n % 3") = forAll(genInt(true, false)) { i =>
+    fizzBuzz(i) == "Fizz"
+  }
 
-.section[Common implementation]
-
-```scala
-sealed trait Status
-
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
+  // ...
 }
 ```
 
 --
 
-.section[Bad because] noisy type inference
-
-```scala
-List(Status.Ok, Status.Nok)
-// res0: List[Product with Serializable with Status] = List(Ok, Nok)
-```
-
----
-
-## Algebraic Data Types .super[2]
-
-.section[Prefer] having the root type extend [`Product`](https://www.scala-lang.org/api/current/scala/Product.html) and [`Serializable`](https://www.scala-lang.org/api/current/scala/Serializable.html)
-
-```scala
-sealed trait Status extends Product with Serializable
-
-object Status {
-  case object Ok extends Status
-  case object Nok extends Status
-}
-```
-
---
-
-The correct type is now inferred:
-
-```scala
-List(Status.Ok, Status.Nok)
-// res1: List[Status] = List(Ok, Nok)
-```
-
----
-
-## Algebraic Data Types .super[3]
-
-.section[Future improvements]
-
-Dotty's `enum` does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
-
----
-
-## Case classes
-
-.section[Common implementation]
-
-```scala
-case class Foo(i: Int)
-```
-
---
-
-.section[Bad because] descendants don't behave as you'd expect
-
-```scala
-class Bar(i: Int, s: String) extends Foo(i)
-```
-
-```scala
-new Bar(1, "foo") == new Bar(1, "bar")
-// res0: Boolean = true
-```
-
----
-
-## Case classes .super[2]
-
-.section[Prefer] final case classes
-
-```scala
-final case class Foo(i: Int)
-```
-
----
-
-## Custom extractors
-
-.section[Common implementation]
-
-```scala
-object ExtractSome {
-  def unapply[A](s: Some[A]): Option[A] = s
-}
-```
-
----
-
-## Custom extractors .super[2]
-
-.section[Bad because] this compiles without a non-exhaustivity warning
-
-```scala
-def foo[A](o: Option[A]): A = o match {
-  case ExtractSome(a) => a
-}
-```
-
---
-
-And fails at runtime
-```scala
-foo(None)
-// scala.MatchError: None (of class scala.None$)
-//   at .foo(<console>:13)
-//   ... 43 elided
-```
-
----
-
-## Custom extractors .super[3]
-
-.section[Prefer] returning type [`Some`](https://www.scala-lang.org/api/current/scala/Some.html) for irrefutable extractors
-
-```scala
-object ExtractSome {
-  def unapply[A](s: Some[A]): Some[A] = s
-}
-```
-
----
-
-## Custom extractors .super[4]
-
-We're now getting the expected warning:
-
-```scala
-def foo[A](o: Option[A]): A = o match {
-  case ExtractSome(a) => a
-}
-// <console>:13: warning: match may not be exhaustive.
-// It would fail on the following input: None
-//        def foo[A](o: Option[A]): A = o match {
-//                                      ^
-// foo: [A](o: Option[A])A
-```
-
----
-
-## Custom extractors .super[5]
-
-.section[Future improvements]
-
-Dotty's exhaustivity checker is [much improved](https://infoscience.epfl.ch/record/225497/files/p61-liu.pdf), fixing most of these oddities
-
----
-
-## Structural types
-
-.section[Common implementation]
-
-```scala
-def add1(x: { def get: Int }): Int = 1 + x.get
-
-final case class Wrapper(i: Int) {
-  def get: Int = i
-}
-```
-
-```scala
-add1(Wrapper(1))
-// res0: Int = 2
-```
-
---
-
-.section[Bad because]
-
-* runtime cost
-* availability on the JVM depends on [runtime configuration](https://docs.oracle.com/javase/7/docs/api/java/lang/SecurityManager.html)
-
----
-
-## Structural types .super[2]
-
-.section[Prefer] type classes
-
-```scala
-trait HasGet[A] {
-  def get(a: A): Int
-}
-
-implicit val wrap: HasGet[Wrapper] = new HasGet[Wrapper] {
-  def get(a: Wrapper) = a.i
-}
-
-def add1[A](a: A)(implicit hga: HasGet[A]): Int = hga.get(a) + 1
-```
-
-```scala
-add1(Wrapper(1))
-// res1: Int = 2
-```
-
----
-
-## Structural types .super[3]
-
-.section[Future improvements]
-
-Dotty's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
-
----
-
-## Exceptions
-
-.section[Common implementation]
-
-```scala
-def parseInt(str: String): Int = str.toInt
-def elementAt[A](value: Array[A], i: Int): A = value(i)
-```
-
---
-
-.section[Bad because] throws exceptions, which is:
-
-* basically a `GOTO` statement
-* unchecked (the compiler cannot enforce code validity)
-* referentially opaque
-
----
-
-## Exceptions .super[2]
-If `throw` was referentially transparent, `foo1` and `foo2` would be equivalent in:
-
-```scala
-def foo1() = if(false) throw new Exception else 2
-
-def foo2() = {
-  val a = throw new Exception
-  if (false) a  else 2
-}
-```
-
----
-
-## Exceptions .super[3]
-
-`foo1` terminates:
-
-```scala
-foo1()
-// res0: Int = 2
-```
-
---
-
-`foo2` does not:
-
-```scala
-foo2()
-// java.lang.Exception
-//   at .foo2(<console>:13)
-//   ... 43 elided
-```
-
----
-
-## Exceptions .super[4]
-
-.section[Prefer]
-
-* [`Option`](http://www.scala-lang.org/api/2.12.2/scala/Option.html) to convey the potential absence of a value
-* [`Either`](http://www.scala-lang.org/api/2.12.2/scala/util/Either.html) to convey a potentially failing computation
-* [`Try`](http://www.scala-lang.org/api/2.12.2/scala/util/Try.html), if you have to deal with code that throws
-
----
-
-## Errors
-
-.section[Common implementation]
-
-```scala
-sealed trait DbError extends Product with Serializable
-
-object DbError {
-  case object InvalidSql extends DbError
-  case object ConnectionLost extends DbError
-}
-```
-
---
-
-.section[Bad because] existing APIs ([`Future`](https://www.scala-lang.org/api/current/scala/concurrent/Future.html), [`Try`](https://www.scala-lang.org/api/current/scala/util/Try.html)...) rely on [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) to convey errors
-
----
-
-## Errors .super[2]
-
-.section[Prefer] extending [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) (but no throwing!)
-
-```scala
-sealed trait DbError extends Exception with
-  Product with Serializable
-
-object DbError {
-  case object InvalidSql extends DbError
-  case object ConnectionLost extends DbError
-}
-```
-
----
-
-## Errors .super[3]
-
-We can now work with "clean" types:
-
-```scala
-// Turn an Either into a Try when needed
-Left(DbError.InvalidSql).toTry
-
-// Fail a Future with a useful error
-scala.concurrent.Future.failed(DbError.InvalidSql)
-```
-
-???
-
-I'm not a big fan of using `Exception` as a universal super type for errors, which is why I don't insist on it in
-writing. Maybe worth bringing up, since Martin Odersky told me he though that was a desirable practice.
-
----
-
-## The `return` keyword
-
-.section["Common" implementation]
-
-```scala
-def add(n: Int, m: Int): Int = return n + m
-```
-
---
-
-.section[Bad because]
-
-* basically a `GOTO` statement
-* breaks referential transparency
-* it doesn't do what you think it does
-
----
-
-## The `return` keyword .super[2]
-
-```scala
-def foo(is: List[Int]): List[Int] =
-  is.map(n => return n + 1)
-// <console>:13: error: type mismatch;
-//  found   : Int
-//  required: List[Int]
-//          is.map(n => return n + 1)
-//                               ^
-```
-
-Doesn't seem to make sense, but let's change the type...
-
----
-
-## The `return` keyword .super[3]
-
-```scala
-def foo(is: List[Int]): Int =
-  is.map(n => return n + 1)
-// <console>:13: error: type mismatch;
-//  found   : List[Nothing]
-//  required: Int
-//          is.map(n => return n + 1)
-//                ^
-```
-
-Fine, let's play along...
-
----
-
-## The `return` keyword .super[4]
-
-```scala
-def foo(is: List[Int]): List[Nothing] =
-  is.map(n => return n + 1)
-// <console>:13: error: type mismatch;
-//  found   : Int
-//  required: List[Nothing]
-//          is.map(n => return n + 1)
-//                               ^
-```
-
---
-
-**(╯°□°）╯︵ ┻━┻**
-
----
-
-## The `return` keyword .super[5]
-
-.section[Prefer] never using `return`
-
---
-
-.section[Future improvements] possibly in [Dotty](https://github.com/lampepfl/dotty/issues/4240)
-
----
-
-## Implicit conversions
-
-.section[Common implementation]
-
-```scala
-implicit def str2int(str: String): Int = Integer.parseInt(str)
-```
-
---
-
-.section[Bad because] we use types to prevent us from doing illegal operations
-
-```scala
-"foobar" / 2
-// java.lang.NumberFormatException: For input string: "foobar"
-//   at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65)
-//   at java.lang.Integer.parseInt(Integer.java:580)
-//   at java.lang.Integer.parseInt(Integer.java:615)
-//   at .str2int(<console>:12)
-//   ... 43 elided
-```
-
----
-
-## Implicit conversions .super[2]
-
-.section[Prefer] explicit conversions
-
-```scala
-scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
-// res1: scala.util.Try[Int] = Failure(java.lang.NumberFormatException: For input string: "foobar")
-```
-
-Note: implicit conversions to enrich existing types (type class "syntax") are ok.
-
----
-
-## Implicit conversions .super[3]
-
-.section[Future improvements]
-
-* Dotty locks this behind a [compilation flag](https://dotty.epfl.ch/docs/reference/contextual/conversions.html)
-* [Extension methods](https://dotty.epfl.ch/docs/reference/contextual/extension-methods.html) have a separate mechanism in Dotty
-
-
----
-
-## Implicit resolution
-
-.section[Common implementation]
-
-```scala
-case class Config(port: Int)
-
-object a1 {
-  implicit val defaultConfig: Config = Config(8080)
-}
-
-def getPort(implicit c: Config): Int = c.port
-```
-
-```scala
-{
-  import a1._
-
-  getPort
-}
-// res0: Int = 8080
-```
-
----
-
-## Implicit resolution .super[2]
-
-.section[Bad because] identical names clash
-
-```scala
-object a2 {
-  implicit val defaultConfig: Int = 12345
-}
-```
-
-```scala
-{
-  import a1._, a2._
-
-  getPort
-}
-// <console>:19: error: could not find implicit value for parameter c: Config
-//          getPort
-//          ^
-```
-
----
-
-## Implicit resolution .super[3]
-
-Clear when you remove the implicits:
-
-```scala
-{
-  import a1._, a2._
-
-  defaultConfig
-}
-// <console>:18: error: reference to defaultConfig is ambiguous;
-// it is imported twice in the same scope by
-// import a2._
-// and import a1._
-//          defaultConfig
-//          ^
-```
-
----
-
-## Implicit resolution .super[4]
-
-
-.section[Prefer]
-* very explicit names, including types
-* unfortunately, no foolproof method I know of
-
---
-
-.section[Future improvements]
-
-* Dotty's [import implied](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
-* Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty anyway
-
----
-
-## String concatenation
-
-.section[Common implementation]
-
-```scala
-1 + "2"
-// res0: String = 12
-```
-
---
-
-.section[Bad because] `+` often does not behave coherently
-
-```scala
-List("foo") + "bar"
-// res1: String = List(foo)bar
-
-Set("foo") + "bar"
-// res2: scala.collection.immutable.Set[String] = Set(foo, bar)
-```
-
----
-
-## String concatenation .super[2]
-
-Let's not even bring this abomination up:
-
-```scala
-List(1) + 2
-// <console>:13: error: type mismatch;
-//  found   : Int(2)
-//  required: String
-//        List(1) + 2
-//                  ^
-```
-
----
-## String concatenation .super[3]
-
-.section[Prefer]
-* explicit calls to `toString`
-* string interpolation
-
-```scala
-val foo = "FOO"
-// foo: String = FOO
-
-s"${foo}bar"
-// res4: String = FOObar
-```
-
----
-
-## String concatenation .super[4]
-
-.section[Future improvements]
-
-* deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
-* removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
-* mysteriously fully supported in [Dotty](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
-
-???
-
-Currently in a weird state:
-- deprecated in 2.13
-- removed from 2.14
-- fully supported in Dotty
+Much better, but doesn't it feel like this could be automated from the decision table?
 
 ---
 
 class: center, middle
 
-# Conclusions
-
-
----
-
-## Enforcing best practices
-
-* [Code reviews](https://smartbear.com/SmartBear/media/pdfs/Best-Kept-Secrets-of-Peer-Code-Review_Redirected.pdf)
-* Automated tools
-  * [scapegoat](https://github.com/sksamuel/scapegoat)
-  * [wartremover](http://www.wartremover.org)
-  * [scala linter](https://github.com/HairyFotr/linter)
-  * [scalastyle](http://www.scalastyle.org)
-  * `scalac`, with sane options (see [Rob Norris' post on the subject](http://tpolecat.github.io/2017/04/25/scalac-flags.html))
-  * [scalafix](https://github.com/scalacenter/scalafix)
----
-
-## More good and bad practices
-
-These were my favourite examples. I'm sure there are others.
-
-I'd be happy to take suggestions for additions to this list, either now or after the talk!
+# kantan.dtables
 
 ---
 
-## Special thanks
+## Decision tables as CSV
 
-The [`scala/contributors`](https://gitter.im/scala/contributors) and [`lampepfl/dotty`](https://gitter.im/lampepfl/dotty) Gitter channels, and especially [Guillaume Martres](https://github.com/smarter).
+Our FizzBuzz decision table is stored as a CSV resource:
 
-They basically wrote the _Future improvements_ sections.
+```scala
+val resource = getClass.getResource("/fizzbuzz.csv")
+```
+
+--
+
+Here's what it looks like:
+
+```scala
+scala.io.Source.fromURL(resource).mkString
+// res0: String =
+// "n % 3,n % 5,,Output
+// T,T,,FizzBuzz
+// T,F,,Fizz
+// F,T,,Buzz
+// F,F,,n
+// "
+```
 
 ---
 
+## Decision tables as CSV .super[2]
+
+Helpers are provided to load the CSV data:
+
+```scala
+import kantan.dtables._
+import kantan.dtables.csv._
+
+val spec: Specification =
+  csv.load(resource).
+    getOrElse(sys.error("Failed to load fizzbuz specs"))
+```
+
+---
+
+## Working with conditions
+
+Conditions are loaded through a common decoding process:
+
+```scala
+import kantan.dtables.properties._
+
+implicit val genDecoder: ConditionsDecoder[Int] =
+  ConditionsDecoder.decoder("n % 3", "n % 5")(genInt)
+```
+
+---
+
+## Working with outcomes
+
+So are outcomes:
+
+```scala
+implicit val outcomeDecoder: OutcomeDecoder[Int => String] =
+  OutcomeDecoder.fromEntry[String]("Output").emap {
+    case "n"        => DecodeResult.success(_.toString)
+    case "Fizz"     => DecodeResult.success(_ => "Fizz")
+    case "FizzBuzz" => DecodeResult.success(_ => "FizzBuzz")
+    case "Buzz"     => DecodeResult.success(_ => "FizzBuzz")
+    case s          => DecodeResult.error(s)
+  }
+```
+
+---
+
+## Writing the test
+
+```scala
+import kantan.dtables.scalatest._
+
+class FizzBuzzTest extends FunSuite with DTables {
+  checkAll("FizzBuzz", spec) { (i: Int, f: Int => String) =>
+    fizzBuzz(i) == f(i)
+  }
+}
+```
+
+---
+
+class: center, middle
+
+# Wrapping things up
+
+---
+
+## Conclusions
+
+Decision tables are:
+
+* A good specification tool, when applicable
+* A good test tool, when available
+--
+
+* Importantly, work that somebody else can do!
+
+---
 
 ## More information
 
-Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
+Slides available on https://nrinaudo.github.io/talk-kantan-dtables/
 
-Articles on these are available on https://nrinaudo.github.io/scala-best-practices/
+kantan.dtables POC available on https://github.com/nrinaudo/kantan.dtables
 
 Find me on Twitter ([@NicolasRinaudo])
 
