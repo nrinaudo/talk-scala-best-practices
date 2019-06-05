@@ -12,9 +12,3 @@ includeFilter in SitePlugin.autoImport.makeSite :=
     "*.woff" | "*.woff2" | "*.otf"
 
 git.remoteRepo := "git@github.com:nrinaudo/talk-scala-best-practices.git"
-
-libraryDependencies ++= Seq(
-  "com.chuusai"                %% "shapeless"     % "2.3.3",
-  "com.github.julien-truffaut" %% "monocle-core"  % "1.5.0",
-  "com.github.julien-truffaut" %% "monocle-macro" % "1.5.0"
-)
