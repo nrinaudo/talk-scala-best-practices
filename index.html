@@ -714,11 +714,11 @@ Note: implicit conversions to enrich existing types (type class "syntax") are ok
 ```scala
 case class Config(port: Int)
 
+def getPort(implicit c: Config): Int = c.port
+
 object a1 {
   implicit val defaultConfig: Config = Config(8080)
 }
-
-def getPort(implicit c: Config): Int = c.port
 ```
 
 ```scala
@@ -786,7 +786,7 @@ Clear when you remove the implicits:
 
 .section[Future improvements]
 
-* Dotty's [import implied](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
+* Dotty's [`import implied`](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
 * Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty anyway
 
 ---
