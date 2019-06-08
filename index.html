@@ -70,7 +70,7 @@ Mutable arrays are still 🤪 though
 .section[Common implementation]
 
 ```scala
-def asOpt[A](a: A) = Some(a)
+def asOption[A](a: A) = Some(a)
 ```
 
 --
@@ -78,8 +78,8 @@ def asOpt[A](a: A) = Some(a)
 .section[Bad because] the return type is not what you'd expect
 
 ```scala
-def asOpt[A](a: A) = Some(a)
-// asOpt: [A](a: A)Some[A]
+def asOption[A](a: A) = Some(a)
+// asOption: [A](a: A)Some[A]
 ```
 
 ---
@@ -89,8 +89,8 @@ def asOpt[A](a: A) = Some(a)
 .section[Prefer] explicitly type-annotated public members
 
 ```scala
-def asOpt[A](a: A): Option[A] = Some(a)
-// asOpt: [A](a: A)Option[A]
+def asOption[A](a: A): Option[A] = Some(a)
+// asOption: [A](a: A)Option[A]
 ```
 
 --
@@ -490,7 +490,7 @@ def foo1() = if(false) throw new Exception else 2
 
 def foo2() = {
   val a = throw new Exception
-  if (false) a  else 2
+  if (false) a else 2
 }
 ```
 
@@ -913,7 +913,7 @@ Slides backed by [remark.js](https://remarkjs.com/) and the amazing [tut](https:
 
 class: center, middle
 
-# Thanks!
+# Questions?
 
 [@NicolasRinaudo]:https://twitter.com/NicolasRinaudo
 [Besedo]:https://twitter.com/besedo_official
