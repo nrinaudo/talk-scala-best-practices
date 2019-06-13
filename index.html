@@ -95,7 +95,7 @@ def asOption[A](a: A): Option[A] = Some(a)
 
 --
 
-.section[Future improvements] Dotty requires type annotations for implicits
+.section[Future improvements] Scala 3 requires type annotations for implicits
 
 ---
 
@@ -208,7 +208,7 @@ def foo(w: Status): Unit = w match {
 
 .section[Future improvements]
 
-Dotty might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6ecdf942b4c4de347) [`Enumeration`](https://www.scala-lang.org/api/current/scala/Enumeration.html) in favour of [enum](https://dotty.epfl.ch/docs/reference/enums/enums.html)
+Scala 3 might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6ecdf942b4c4de347) [`Enumeration`](https://www.scala-lang.org/api/current/scala/Enumeration.html) in favour of [enum](https://dotty.epfl.ch/docs/reference/enums/enums.html)
 
 ---
 
@@ -298,7 +298,7 @@ List(Status.Ok, Status.Nok)
 
 .section[Future improvements]
 
-Dotty's `enum` does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
+Scala 3's `enum` does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
 
 ---
 
@@ -402,7 +402,7 @@ def foo[A](o: Option[A]): A = o match {
 
 .section[Future improvements]
 
-Dotty's exhaustivity checker is [much improved](https://infoscience.epfl.ch/record/225497/files/p61-liu.pdf), fixing most of these oddities
+Scala 3's exhaustivity checker is [much improved](https://infoscience.epfl.ch/record/225497/files/p61-liu.pdf), fixing most of these oddities
 
 ---
 
@@ -459,7 +459,7 @@ add1(Wrapper(1))
 
 .section[Future improvements]
 
-Dotty's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
+Scala 3's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
 
 ---
 
@@ -656,7 +656,7 @@ def foo(is: List[Int]): List[Nothing] =
 
 --
 
-.section[Future improvements] possibly in [Dotty](https://github.com/lampepfl/dotty/issues/4240)
+.section[Future improvements] possibly in [Scala 3](https://github.com/lampepfl/dotty/issues/4240)
 
 ---
 
@@ -701,8 +701,8 @@ Note: implicit conversions to enrich existing types (type class "syntax") are ok
 
 .section[Future improvements]
 
-* Dotty locks this behind a [compilation flag](https://dotty.epfl.ch/docs/reference/contextual/conversions.html)
-* [Extension methods](https://dotty.epfl.ch/docs/reference/contextual/extension-methods.html) have a separate mechanism in Dotty
+* Scala 3 locks this behind a [compilation flag](https://dotty.epfl.ch/docs/reference/contextual/conversions.html)
+* [Extension methods](https://dotty.epfl.ch/docs/reference/contextual/extension-methods.html) have a separate mechanism in Scala 3
 
 
 ---
@@ -786,8 +786,8 @@ Clear when you remove the implicits:
 
 .section[Future improvements]
 
-* Dotty's [`import implied`](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
-* Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Dotty anyway
+* Scala 3's [`import implied`](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
+* Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Scala 3 anyway
 
 ---
 
@@ -850,14 +850,14 @@ s"${foo}bar"
 
 * deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
 * removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
-* mysteriously fully supported in [Dotty](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
+* mysteriously fully supported in [Scala 3](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
 
 ???
 
 Currently in a weird state:
 - deprecated in 2.13
 - removed from 2.14
-- fully supported in Dotty
+- fully supported in Scala 3
 
 ---
 
