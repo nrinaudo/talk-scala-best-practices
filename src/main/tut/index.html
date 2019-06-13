@@ -25,46 +25,12 @@ Each slide will start with a common pattern. See if you can work out what's wron
 
 ---
 
-class: center, middle
-
-# Working with Numbers
-
----
-
-## Checking for oddness
-
-.section[Common implementation]
-
-```tut:silent
-3 % 2 == 1
-```
-
---
-
-.section[Bad because] fails on negative numbers
-
-```tut:book
--3 % 2 == 1
-```
-
----
-
-## Checking for oddness .super[2]
-
-.section[Prefer]
-
-```tut:book
--3 % 2 != 0
-```
-
----
-
-## Checking for `NaN`
+## Array comparison
 
 .section[Common implementation]
 
 ```tut:silent:reset
-2.0 == Double.NaN
+Array(1) == Array(1)
 ```
 
 --
@@ -72,58 +38,95 @@ class: center, middle
 .section[Bad because] it does not work
 
 ```tut:book
-Double.NaN == Double.NaN
+Array(1) == Array(1)
 ```
 
 ---
 
-## Checking for `NaN` .super[2]
+## Array comparison .super[2]
 
-.section[Prefer] calling `isNaN`
+.section[Prefer] using `sameElements`
 
 ```tut:book
-Double.NaN.isNaN
-
-2.0.isNaN
+Array(1).sameElements(Array(1))
 ```
-
-???
-
-Normal behaviour according to IEEE 754
 
 ---
 
-## Long literals
+## Array comparison .super[3]
+
+.section[Future improvements]
+
+2.13 introduces [immutable arrays](https://scala-lang.org/files/archive/api/2.13.x/scala/collection/immutable/ArraySeq.html) which behave as expected
+
+Mutable arrays are still 🤪 though
+
+---
+
+## Type annotation
 
 .section[Common implementation]
 
 ```tut:silent:reset
-val l = 32l
+def asOption[A](a: A) = Some(a)
 ```
 
 --
 
-.section[Bad because] depending on the font, `l` can be hard to distinguish from `1`
+.section[Bad because] the return type is not what you'd expect
 
 ```tut:book
-List(1, 11, 111, 111l, 11111, 11111, 11111)
+def asOption[A](a: A) = Some(a)
 ```
 
 ---
 
-## Long literals .super[2]
+## Type annotation .super[2]
 
-.section[Prefer] upper-case L
+.section[Prefer] explicitly type-annotated public members
 
 ```tut:book
-List(1, 11, 111, 111L, 11111, 11111, 11111)
+def asOption[A](a: A): Option[A] = Some(a)
+```
+
+--
+
+.section[Future improvements] Scala 3 requires type annotations for implicits
+
+---
+
+## Unicode operators
+
+.section[Common implementation]
+
+```tut:fail:silent
+1 → 4 / 2
+```
+
+--
+
+.section[Bad because] not actually equivalent to the ASCII operator
+
+
+```tut:fail:book
+1 → 4 / 2
 ```
 
 ---
 
-class: center, middle
+## Unicode operators .super[2]
 
-# Data Representation
+.section[Prefer] the ASCII operator
+
+```tut:book
+1 -> 4 / 2
+```
+
+--
+
+.section[Future improvements]
+
+Deprecated in [2.13](https://github.com/scala/scala/pull/7540)
 
 ---
 
@@ -137,20 +140,28 @@ object Status extends Enumeration {
 }
 ```
 
---
+---
 
-.section[Bad because] no pattern match exhaustivity check
+## Enumerations .super[2]
+
+.section[Bad because] This compiles without a non-exhaustivity warning
 
 ```tut:silent
-// No warning even though Status.Nok will crash this
 def foo(w: Status.Value): Unit = w match {
   case Status.Ok => println("ok")
 }
 ```
 
+--
+
+And fails at runtime
+```tut:fail:book
+foo(Status.Nok)
+```
+
 ---
 
-## Enumerations .super[2]
+## Enumerations .super[3]
 
 .section[Prefer] sealed trait hierarchies (ADTs)
 
@@ -165,7 +176,7 @@ object Status {
 
 ---
 
-## Enumerations .super[3]
+## Enumerations .super[4]
 
 The compiler now knows we're not exhaustive:
 
@@ -173,6 +184,48 @@ The compiler now knows we're not exhaustive:
 def foo(w: Status): Unit = w match {
   case Status.Ok => println("ok")
 }
+```
+
+---
+
+## Enumerations .super[5]
+
+.section[Future improvements]
+
+Scala 3 might eventually [deprecate](https://gitter.im/lampepfl/dotty?at=5ceaece6ecdf942b4c4de347) [`Enumeration`](https://www.scala-lang.org/api/current/scala/Enumeration.html) in favour of [enum](https://dotty.epfl.ch/docs/reference/enums/enums.html)
+
+---
+
+## Sealed traits
+
+.section[Common implementation]
+
+```tut:silent:reset
+// File Foo.scala
+sealed trait Foo
+
+class Bar extends Foo
+```
+
+--
+
+.section[Bad because] the seal might leak
+
+```tut:silent
+// File FooBar.scala
+class FooBar extends Bar
+```
+
+---
+
+## Sealed traits .super[2]
+
+.section[Prefer] `final` or `sealed` descendants
+
+```tut:silent
+sealed trait Foo
+
+final class Bar extends Foo
 ```
 
 ---
@@ -202,7 +255,7 @@ List(Status.Ok, Status.Nok)
 
 ## Algebraic Data Types .super[2]
 
-.section[Prefer] having the root type extend `Product` and `Serializable`
+.section[Prefer] having the root type extend [`Product`](https://www.scala-lang.org/api/current/scala/Product.html) and [`Serializable`](https://www.scala-lang.org/api/current/scala/Serializable.html)
 
 ```tut:silent
 sealed trait Status extends Product with Serializable
@@ -223,36 +276,11 @@ List(Status.Ok, Status.Nok)
 
 ---
 
-## Sealed traits
+## Algebraic Data Types .super[3]
 
-.section[Common implementation]
+.section[Future improvements]
 
-```tut:silent:reset
-sealed trait Foo
-
-class Bar extends Foo
-```
-
---
-
-.section[Bad because] the seal might leak
-
-```tut:silent
-// In another file, compiles without a problem
-class FooBar extends Bar
-```
-
----
-
-## Sealed traits .super[2]
-
-.section[Prefer] `final` or `sealed` descendants
-
-```tut:silent
-sealed trait Foo
-
-final class Bar extends Foo
-```
+Scala 3's `enum` does a better job of hiding the issue, but [doesn't fix it](https://contributors.scala-lang.org/t/could-adts-extend-product-with-serializable-in-dotty/3304/59)
 
 ---
 
@@ -298,7 +326,9 @@ object ExtractSome {
 }
 ```
 
---
+---
+
+## Custom extractors .super[2]
 
 .section[Bad because] this compiles without a non-exhaustivity warning
 
@@ -308,11 +338,18 @@ def foo[A](o: Option[A]): A = o match {
 }
 ```
 
+--
+
+And fails at runtime
+```tut:fail:book
+foo(None)
+```
+
 ---
 
-## Custom extractors .super[2]
+## Custom extractors .super[3]
 
-.section[Prefer] returning type `Some` for exhaustive extractors
+.section[Prefer] returning type [`Some`](https://www.scala-lang.org/api/current/scala/Some.html) for irrefutable extractors
 
 ```tut:silent:reset
 object ExtractSome {
@@ -322,7 +359,7 @@ object ExtractSome {
 
 ---
 
-## Custom extractors .super[3]
+## Custom extractors .super[4]
 
 We're now getting the expected warning:
 
@@ -332,11 +369,13 @@ def foo[A](o: Option[A]): A = o match {
 }
 ```
 
---
+---
 
-Scala warns when it can find proof of non-exhaustivity, not when it can't find proof of exhaustivity.
+## Custom extractors .super[5]
 
-Where is your god now?
+.section[Future improvements]
+
+Scala 3's exhaustivity checker is [much improved](https://infoscience.epfl.ch/record/225497/files/p61-liu.pdf), fixing most of these oddities
 
 ---
 
@@ -361,7 +400,7 @@ add1(Wrapper(1))
 .section[Bad because]
 
 * runtime cost
-* availability on the JVM depends on runtime configuration (security managers)
+* availability on the JVM depends on [runtime configuration](https://docs.oracle.com/javase/7/docs/api/java/lang/SecurityManager.html)
 
 ---
 
@@ -387,82 +426,11 @@ add1(Wrapper(1))
 
 ---
 
-class: center, middle
+## Structural types .super[3]
 
-# Safety (type or otherwise)
+.section[Future improvements]
 
-
----
-
-## Type annotation
-
-.section[Common implementation]
-
-```tut:silent:reset
-def asOpt[A](a: A) = Some(a)
-```
-
---
-
-.section[Bad because] the return type is not what you'd expect
-
-```tut:book
-def asOpt[A](a: A) = Some(a)
-```
-
----
-
-## Type annotation .super[2]
-
-.section[Prefer] explicitly type-annotated public methods
-
-```tut:book
-def asOpt[A](a: A): Option[A] = Some(a)
-```
-
----
-
-## String concatenation
-
-.section[Common implementation]
-
-```tut:book:reset
-1 + "2"
-```
-
---
-
-.section[Bad because]
-* deprecated from 2.13
-* `+` often does not behave coherently
-
-```tut:book
-List("foo") + "bar"
-Set("foo") + "bar"
-```
-
----
-
-## String concatenation .super[2]
-
-Let's not even bring this abomination up (not fixed in 2.13):
-
-```tut:book:fail
-List(1) + 2
-```
-
----
-## String concatenation .super[3]
-
-.section[Prefer]
-
-* explicit calls to `toString`
-* string interpolation
-
-```tut:book
-val foo = "FOO"
-s"${foo}bar"
-```
+Scala 3's [structural types](https://dotty.epfl.ch/docs/reference/changed-features/structural-types.html) are far more flexible, but still default to reflection
 
 ---
 
@@ -477,15 +445,47 @@ def elementAt[A](value: Array[A], i: Int): A = value(i)
 
 --
 
-.section[Bad because] where to begin...
+.section[Bad because] throws exceptions, which is:
 
-* breaks referential transparency
 * basically a `GOTO` statement
 * unchecked (the compiler cannot enforce code validity)
+* referentially opaque
 
 ---
 
 ## Exceptions .super[2]
+If `throw` was referentially transparent, `foo1` and `foo2` would be equivalent in:
+
+```tut:silent
+def foo1() = if(false) throw new Exception else 2
+
+def foo2() = {
+  val a = throw new Exception
+  if (false) a else 2
+}
+```
+
+---
+
+## Exceptions .super[3]
+
+`foo1` terminates:
+
+```tut:book
+foo1()
+```
+
+--
+
+`foo2` does not:
+
+```tut:fail:book
+foo2()
+```
+
+---
+
+## Exceptions .super[4]
 
 .section[Prefer]
 
@@ -510,13 +510,13 @@ object DbError {
 
 --
 
-.section[Bad because] existing APIs (`Future`, `Try`...) rely on `Exception` to convey errors
+.section[Bad because] existing APIs ([`Future`](https://www.scala-lang.org/api/current/scala/concurrent/Future.html), [`Try`](https://www.scala-lang.org/api/current/scala/util/Try.html)...) rely on [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) to convey errors
 
 ---
 
 ## Errors .super[2]
 
-.section[Prefer] extending `Exception` (but no throwing!)
+.section[Prefer] extending [`Exception`](https://docs.oracle.com/javase/7/docs/api/java/lang/Exception.html) (but no throwing!)
 
 ```tut:silent
 sealed trait DbError extends Exception with
@@ -561,8 +561,8 @@ def add(n: Int, m: Int): Int = return n + m
 
 .section[Bad because]
 
-* breaks referential transparency
 * basically a `GOTO` statement
+* breaks referential transparency
 * it doesn't do what you think it does
 
 ---
@@ -604,103 +604,13 @@ def foo(is: List[Int]): List[Nothing] =
 
 ## The `return` keyword .super[5]
 
-.section[Prefer]
-* never using `return`
-* dotty apparently fixes the more insane corner cases
-
-
-???
-
-Also: not referentially transparent
-
-See https://tpolecat.github.io/2014/05/09/return.html
-
-Dotty apparently either behave "properly" or refuses to compile when it finds a `return` in a lambda.
-
----
-
-## Recursion
-
-.section[Common implementation]
-
-```tut:silent:reset
-def sum(is: List[Int]): Int = is match {
-  case h :: t => h + sum(t)
-  case _      => 0
-}
-```
+.section[Prefer] never using `return`
 
 --
 
-.section[Bad because] stack unsafe
-
-```tut:fail:book
-sum(List.range(1, 300000))
-```
+.section[Future improvements] possibly in [Scala 3](https://github.com/lampepfl/dotty/issues/4240)
 
 ---
-
-## Recursion .super[2]
-
-.section[Prefer] tail recursion
-
-```tut:silent
-def sum(is: List[Int]): Int = {
-  def loop(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => loop(t, acc + h)
-    case _      => acc
-  }
-  loop(is, 0)
-}
-```
-
---
-
-Tail recursion is stack-safe:
-
-```tut:book
-sum(List.range(1, 300000))
-```
-
----
-
-## Tail recursion
-
-.section[Common implementation]
-
-```tut:silent:reset
-class Foo {
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
-  }
-}
-```
-
----
-
-## Tail recursion .super[2]
-
-.section[Bad because] this is not actually tail recursive
-
-```tut:book:fail
-class Foo {
-  @annotation.tailrec
-  def sum(cur: List[Int], acc: Int): Int = cur match {
-    case h :: t => sum(t, acc + h)
-    case _      => acc
-  }
-}
-```
-
----
-
-## Tail recursion .super[3]
-
-.section[Prefer] always annotating tail-recursive functions with [`@tailrec`](http://www.scala-lang.org/api/2.12.2/scala/annotation/tailrec.html)
-
----
-
 
 ## Implicit conversions
 
@@ -730,6 +640,15 @@ scala.util.Try(Integer.parseInt("foobar")).map(_ / 2)
 
 Note: implicit conversions to enrich existing types (type class "syntax") are ok.
 
+---
+
+## Implicit conversions .super[3]
+
+.section[Future improvements]
+
+* Scala 3 locks this behind a [compilation flag](https://dotty.epfl.ch/docs/reference/contextual/conversions.html)
+* [Extension methods](https://dotty.epfl.ch/docs/reference/contextual/extension-methods.html) have a separate mechanism in Scala 3
+
 
 ---
 
@@ -740,11 +659,11 @@ Note: implicit conversions to enrich existing types (type class "syntax") are ok
 ```tut:silent:reset
 case class Config(port: Int)
 
+def getPort(implicit c: Config): Int = c.port
+
 object a1 {
   implicit val defaultConfig: Config = Config(8080)
 }
-
-def getPort(implicit c: Config): Int = c.port
 ```
 
 ```tut:book
@@ -775,247 +694,93 @@ object a2 {
 }
 ```
 
-???
-
-The order of the imports is irrelevant.
-
 ---
 
 ## Implicit resolution .super[3]
+
+Clear when you remove the implicits:
+
+```tut:fail:book
+{
+  import a1._, a2._
+
+  defaultConfig
+}
+```
+
+---
+
+## Implicit resolution .super[4]
 
 
 .section[Prefer]
 * very explicit names, including types
 * unfortunately, no foolproof method I know of
-* dotty brings hope!
+
+--
+
+.section[Future improvements]
+
+* Scala 3's [`import implied`](https://dotty.epfl.ch/docs/reference/contextual/import-implied.html) make the situation less likely
+* Implicit name shadowing [isn't a thing](http://dotty.epfl.ch/docs/reference/changed-features/implicit-resolution.html) in Scala 3 anyway
+
+---
+
+## String concatenation
+
+.section[Common implementation]
+
+```tut:book:reset
+1 + "2"
+```
+
+--
+
+.section[Bad because] `+` often does not behave coherently
+
+```tut:book
+List("foo") + "bar"
+Set("foo") + "bar"
+```
+
+---
+
+## String concatenation .super[2]
+
+Let's not even bring this abomination up:
+
+```tut:book:fail
+List(1) + 2
+```
+
+---
+## String concatenation .super[3]
+
+.section[Prefer]
+* explicit calls to `toString`
+* string interpolation
+
+```tut:book
+val foo = "FOO"
+s"${foo}bar"
+```
+
+---
+
+## String concatenation .super[4]
+
+.section[Future improvements]
+
+* deprecated in [2.13](https://twitter.com/eed3si9n/status/1126960037086339072)
+* removed from [2.14](https://twitter.com/eed3si9n/status/1126960825703514112)
+* mysteriously fully supported in [Scala 3](https://twitter.com/NicolasRinaudo/status/1126947756583661574)
 
 ???
 
-I've been told this was either fixed or improved with dotty, but can't find a trace of it online.
-
----
-
-## Checking for emptiness
-
-.section[Common implementation]
-
-```tut:silent:reset
-def foo[A](s: Seq[A]): Unit =
-  println(if(s.size == 0) "empty" else "non-empty")
-```
-
---
-
-.section[Bad because] not all collections are finite
-
-```scala
-// This doesn't return.
-foo(Stream.from(1))
-```
-
----
-
-## Checking for emptiness .super[2]
-
-.section[Prefer] `isEmpty` or `nonEmpty`
-
-```tut:book
-Stream.from(1).isEmpty
-```
-
----
-
-## Array comparison
-
-.section[Common implementation]
-
-```tut:silent:reset
-Array(1) == Array(1)
-```
-
---
-
-.section[Bad because] it does not work
-
-```tut:book
-Array(1) == Array(1)
-```
-
----
-
-## Array comparison .super[2]
-
-.section[Prefer] using `sameElements`
-
-```tut:book
-Array(1).sameElements(Array(1))
-```
-
----
-
-## `Traversable` safety: `head`
-
-.section[Common implementation]
-
-```tut:book:reset
-Seq(1, 2, 3).head
-```
-
---
-
-.section[Bad because] some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].head
-```
-
----
-
-## `Traversable` safety: `head` .super[2]
-
-.section[Prefer] `headOption`
-
-```tut:book
-Seq(1, 2, 3).headOption
-
-Seq.empty[Int].headOption
-```
-
----
-
-## `Traversable` safety: `last`
-
-
-.section[Common implementation]
-
-```tut:book:reset
-Seq(1, 2, 3).last
-```
-
---
-
-.section[Bad because] some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].last
-```
-
----
-
-## `Traversable` safety: `last` .super[2]
-
-
-.section[Prefer] `lastOption`
-
-```tut:book
-Seq(1, 2, 3).lastOption
-
-Seq.empty[Int].lastOption
-```
----
-
-## `Traversable` safety: `tail`
-
-.section[Common implementation]
-
-```tut:book:reset
-Seq(1, 2, 3).tail
-```
-
---
-
-.section[Bad because] some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].tail
-```
-
----
-
-## `Traversable` safety: `tail` .super[2]
-
-.section[Prefer] `drop(1)`
-
-```tut:book
-Seq(1, 2, 3).drop(1)
-
-Seq.empty[Int].drop(1)
-```
-
----
-
-## `Traversable` safety: `init`
-
-.section[Common implementation]
-
-```tut:book:reset
-Seq(1, 2, 3).init
-```
-
---
-
-.section[Bad because] some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].init
-```
-
----
-
-## `Traversable` safety: `init` .super[2]
-
-
-.section[Prefer] `dropRight(1)`
-
-```tut:book
-Seq(1, 2, 3).dropRight(1)
-
-Seq.empty[Int].dropRight(1)
-```
-
----
-
-## `Traversable` safety: `reduce`
-
-
-.section[Common implementation]
-
-```tut:book:reset
-Seq(1, 2, 3).reduce(_ + _)
-```
-
----
-
-## `Traversable` safety: `reduce` .super[2]
-
-.section[Bad because] some collections are empty
-
-```tut:book:fail
-Seq.empty[Int].reduce(_ + _)
-```
-
----
-
-## `Traversable` safety: `reduce` .super[3]
-
-
-.section[Prefer]
-
-* `reduceOption`
-
-```tut:book
-Seq(1, 2, 3).reduceOption(_ + _)
-
-Seq.empty[Int].reduceOption(_ + _)
-```
-
-* `fold`
-
-```tut:book
-Seq(1, 2, 3).fold(0)(_ + _)
-
-Seq.empty[Int].fold(0)(_ + _)
-```
+Currently in a weird state:
+- deprecated in 2.13
+- removed from 2.14
+- fully supported in Scala 3
 
 ---
 
@@ -1028,7 +793,7 @@ class: center, middle
 
 ## Enforcing best practices
 
-* Code reviews
+* [Code reviews](https://smartbear.com/SmartBear/media/pdfs/Best-Kept-Secrets-of-Peer-Code-Review_Redirected.pdf)
 * Automated tools
   * [scapegoat](https://github.com/sksamuel/scapegoat)
   * [wartremover](http://www.wartremover.org)
@@ -1046,10 +811,20 @@ I'd be happy to take suggestions for additions to this list, either now or after
 
 ---
 
+## Special thanks
+
+The [`scala/contributors`](https://gitter.im/scala/contributors) and [`lampepfl/dotty`](https://gitter.im/lampepfl/dotty) Gitter channels, and especially [Guillaume Martres](https://github.com/smarter).
+
+They basically wrote the _Future improvements_ sections.
+
+---
+
 
 ## More information
 
 Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
+
+Articles on these are available on https://nrinaudo.github.io/scala-best-practices/
 
 Find me on Twitter ([@NicolasRinaudo])
 
@@ -1061,7 +836,7 @@ Slides backed by [remark.js](https://remarkjs.com/) and the amazing [tut](https:
 
 class: center, middle
 
-# Thanks!
+# Questions?
 
 [@NicolasRinaudo]:https://twitter.com/NicolasRinaudo
 [Besedo]:https://twitter.com/besedo_official
