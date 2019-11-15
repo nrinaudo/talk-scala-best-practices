@@ -4,7 +4,7 @@ Scala is a language with many qualities, but it has more than its share of quirk
 
 This talk is about the more commons gotchas in the language, and the standard recipes we have for dealing with them. A lot of them are assumed to be common knowledge and never really brought up, which means that a lot of Scala developers had to find out about them the hard way.
 
-The purpose of this talk is to try and save some pain by puting the worst offenders in the spotlight and, hopefully, starting conversations around them.
+The purpose of this talk is to try and save some pain by putting the worst offenders in the spotlight and, hopefully, starting conversations around them.
 
 
 # Required Knowledge
